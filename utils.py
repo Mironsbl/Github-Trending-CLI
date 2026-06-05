@@ -43,21 +43,22 @@ def get_since_date(duration: str) -> str:
 # Caching helpers
 # ---------------------------------------------------------------------------
 
-def _cache_key(duration: str, limit: int, language: str | None) -> str:
+def _cache_key(source: str, duration: str, limit: int, language: str | None) -> str:
     """Compute a deterministic cache filename from query parameters."""
-    raw = f"{duration}:{limit}:{language or ''}"
+    raw = f"{source}:{duration}:{limit}:{language or ''}"
     digest = hashlib.sha256(raw.encode()).hexdigest()[:16]
     return f"trending_{digest}.json"
 
 
 def read_cache(
+    source: str,
     duration: str,
     limit: int,
     language: str | None,
     ttl: int = DEFAULT_TTL_SECONDS,
 ) -> list[dict[str, Any]] | None:
     """Return cached results if they exist and are fresh, else None."""
-    path = CACHE_DIR / _cache_key(duration, limit, language)
+    path = CACHE_DIR / _cache_key(source, duration, limit, language)
     if not path.exists():
         return None
     age = time.time() - path.stat().st_mtime
@@ -74,13 +75,14 @@ def read_cache(
 
 def write_cache(
     repos: list[dict[str, Any]],
+    source: str,
     duration: str,
     limit: int,
     language: str | None,
 ) -> None:
     """Persist repos to the on-disk cache."""
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    path = CACHE_DIR / _cache_key(duration, limit, language)
+    path = CACHE_DIR / _cache_key(source, duration, limit, language)
     path.write_text(json.dumps(repos, ensure_ascii=False), encoding="utf-8")
 
 

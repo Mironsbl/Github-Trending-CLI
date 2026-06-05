@@ -2,11 +2,21 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from flask import Flask, jsonify, request, render_template
 
 import github_api
 import scraper
+import utils
+
+# Configure production-grade logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[logging.StreamHandler()]
+)
+logger = logging.getLogger("github_trending_web")
 
 app = Flask(__name__)
 
@@ -15,6 +25,12 @@ app = Flask(__name__)
 def index():
     """Serve the main web UI."""
     return render_template("index.html")
+
+
+@app.route("/api/health")
+def health():
+    """Health check endpoint for production monitoring."""
+    return jsonify({"status": "healthy"})
 
 
 @app.route("/api/trending")
@@ -29,8 +45,25 @@ def api_trending():
     source = request.args.get("source", "api")
     query = request.args.get("query") or None
     token = request.args.get("token") or os.environ.get("GITHUB_TOKEN")
+    no_cache = request.args.get("no_cache") == "true"
 
     min_stars = int(min_stars) if min_stars else None
+
+    # Check cache first if not explicitly bypassed
+    if not no_cache:
+        cached = utils.read_cache(source, duration, limit, language)
+        if cached is not None:
+            logger.info("Cache hit for source=%s duration=%s lang=%s", source, duration, language)
+            if query:
+                cached = scraper.search_repos_by_query(query, cached)
+            return jsonify({
+                "repos": cached,
+                "count": len(cached),
+                "source": source,
+                "cached": True
+            })
+
+    logger.info("Cache miss. Fetching from source=%s duration=%s lang=%s", source, duration, language)
 
     try:
         if source == "trending":
@@ -40,10 +73,16 @@ def api_trending():
                 limit=limit,
             )
             if not repos:
+                logger.warning("Scraper failed or returned no results; falling back to Search API")
                 repos = github_api.fetch_trending_repos(
                     duration=duration, limit=limit, language=language,
                     topic=topic, sort=sort, min_stars=min_stars, token=token,
                 )
+                for r in repos:
+                    r["source"] = "api"
+            else:
+                for r in repos:
+                    r["source"] = "trending"
         else:
             repos = github_api.fetch_trending_repos(
                 duration=duration,
@@ -54,14 +93,26 @@ def api_trending():
                 min_stars=min_stars,
                 token=token,
             )
+            for r in repos:
+                r["source"] = "api"
+
+        # Write to cache if results were fetched successfully
+        if repos:
+            utils.write_cache(repos, source, duration, limit, language)
 
         if query:
             repos = scraper.search_repos_by_query(query, repos)
 
-        return jsonify({"repos": repos, "count": len(repos), "source": source})
+        return jsonify({
+            "repos": repos,
+            "count": len(repos),
+            "source": source,
+            "cached": False
+        })
 
     except github_api.GitHubAPIError as e:
-        return jsonify({"error": str(e), "repos": [], "count": 0}), 500
+        logger.error("Error fetching trending repositories: %s", e)
+        return jsonify({"error": str(e), "repos": [], "count": 0, "cached": False}), 500
 
 
 @app.route("/api/search")
@@ -71,10 +122,12 @@ def api_search():
 
 
 def run_server():
-    """Start the Flask server."""
-    app.run(host="127.0.0.1", port=5000, debug=False)
+    """Start the server using Waitress for production-grade hosting."""
+    from waitress import serve
+    logger.info("🔥 Starting GitHub Trending Web UI on http://localhost:5000 (powered by Waitress)")
+    serve(app, host="127.0.0.1", port=5000)
 
 
 if __name__ == "__main__":
-    print("\n🔥 GitHub Trending Web UI → http://localhost:5000\n")
+    logger.info("🔥 Starting GitHub Trending Web UI on http://localhost:5000 (debug/dev mode)")
     app.run(host="127.0.0.1", port=5000, debug=True)

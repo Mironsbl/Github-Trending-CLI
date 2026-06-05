@@ -181,7 +181,7 @@ def _fetch_repos(args: argparse.Namespace) -> list[dict]:
 
     # Default: GitHub Search API
     if not args.no_cache:
-        cached = utils.read_cache(args.duration, args.limit, args.language)
+        cached = utils.read_cache(args.source, args.duration, args.limit, args.language)
         if cached is not None:
             console.print("[dim](using cached results)[/dim]")
             return cached
@@ -197,7 +197,7 @@ def _fetch_repos(args: argparse.Namespace) -> list[dict]:
     )
 
     if not args.no_cache:
-        utils.write_cache(repos, args.duration, args.limit, args.language)
+        utils.write_cache(repos, args.source, args.duration, args.limit, args.language)
 
     # Apply keyword filter on API results
     if args.query:
@@ -221,6 +221,12 @@ def _fetch_repos_trending(args: argparse.Namespace) -> list[dict]:
     }
     since = since_map.get(args.duration, "daily")
 
+    if not args.no_cache:
+        cached = utils.read_cache(args.source, args.duration, args.limit, args.language)
+        if cached is not None:
+            console.print("[dim](using cached results)[/dim]")
+            return cached
+
     repos = scraper.fetch_trending_with_fallback(
         since=since,
         language=args.language,
@@ -231,6 +237,10 @@ def _fetch_repos_trending(args: argparse.Namespace) -> list[dict]:
         sort=args.sort,
         min_stars=args.min_stars,
     )
+
+    if not args.no_cache and repos:
+        utils.write_cache(repos, args.source, args.duration, args.limit, args.language)
+
     return repos
 
 
