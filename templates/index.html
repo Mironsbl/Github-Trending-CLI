@@ -533,6 +533,65 @@
             margin: 0 auto;
         }
         .footer a { color: var(--blue); text-decoration: none; }
+
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px 60px;
+            display: flex;
+            gap: 24px;
+        }
+        .repos-section {
+            flex: 3;
+        }
+        .sidebar-section {
+            flex: 1;
+            min-width: 280px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        @media (max-width: 1000px) {
+            .main-container {
+                flex-direction: column;
+            }
+            .sidebar-section {
+                width: 100%;
+            }
+        }
+        .trend-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            text-decoration: none;
+            color: var(--text);
+            font-size: 0.88rem;
+            transition: all 0.2s;
+            cursor: pointer;
+            text-align: left;
+        }
+        .trend-item:hover {
+            border-color: var(--blue);
+            background: rgba(96, 165, 250, 0.08);
+            transform: translateX(4px);
+        }
+        .trend-name {
+            font-weight: 600;
+            color: var(--blue);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 170px;
+        }
+        .trend-tweets {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            flex-shrink: 0;
+        }
     </style>
 </head>
 <body>
@@ -591,8 +650,16 @@
     </select>
     <div class="stars-filter">
         <span id="minStarsLabelText">⭐ Min:</span>
-        <input type="range" id="minStars" min="0" max="1000" value="0" step="10">
-        <span id="minStarsValue">0</span>
+        <select class="filter-select" id="minStarsSelect" onchange="onMinStarsChange()" style="padding: 10px 14px; border-radius: 10px; font-size: 0.85rem;">
+            <option value="0">Any Stars</option>
+            <option value="100">> 100 ⭐</option>
+            <option value="1000">> 1k ⭐</option>
+            <option value="5000">> 5k ⭐</option>
+            <option value="10000">> 10k ⭐</option>
+            <option value="50000">> 50k ⭐</option>
+            <option value="custom">Custom...</option>
+        </select>
+        <input type="number" id="minStarsCustomInput" placeholder="Min Stars" style="display:none; width: 100px; padding: 10px 14px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 0.85rem; outline: none; transition: border-color 0.3s;" onchange="fetchRepos()">
     </div>
     <button class="btn-refresh" id="btnRefresh" onclick="fetchRepos()">Refresh</button>
     <button class="btn-analytics" id="btnAnalytics" onclick="toggleAnalytics()">📊 Analytics</button>
@@ -636,10 +703,34 @@
     </div>
 </div>
 
-<div id="content">
-    <div class="loading">
-        <div class="spinner"></div>
-        <p style="color:var(--text-dim)">Loading trending repositories...</p>
+<div class="main-container">
+    <div class="repos-section" id="content">
+        <div class="loading">
+            <div class="spinner"></div>
+            <p style="color:var(--text-dim)">Loading trending repositories...</p>
+        </div>
+    </div>
+    
+    <div class="sidebar-section">
+        <!-- Twitter Trends Card -->
+        <div class="card" style="padding: 20px; animation-delay: 0.1s; height: fit-content; background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px;">
+            <h3 style="font-size: 1.1rem; font-weight: 800; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: var(--text);" id="sidebarTrendsTitle">
+                <span style="color: var(--blue);">🐦</span> Twitter Trends
+            </h3>
+            <div id="twitterTrendsList" style="display: flex; flex-direction: column; gap: 10px;">
+                <div class="loading" style="padding: 20px 0; text-align: center;"><div class="spinner" style="width: 24px; height: 24px; border-width: 3px; margin: 0 auto 8px;"></div><p style="font-size: 0.78rem; color: var(--text-dim);">Loading trends...</p></div>
+            </div>
+        </div>
+        
+        <!-- Quick AI Tips Card -->
+        <div class="card" style="padding: 20px; animation-delay: 0.2s; height: fit-content; background: linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(22, 27, 34, 0.8)); border: 1px solid rgba(124, 58, 237, 0.25); border-radius: 16px;">
+            <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 8px; color: #c084fc; display: flex; align-items: center; gap: 6px;">
+                <span>💡</span> AI Tip
+            </h4>
+            <p style="font-size: 0.82rem; color: var(--text-dim); line-height: 1.4; text-align: left;" id="sidebarAiTipText">
+                Click 🤖 AI on any repository to get a quick summary, installation tips, and technical architecture reviews instantly.
+            </p>
+        </div>
     </div>
 </div>
 
@@ -777,6 +868,17 @@ const T = {
         apiKeySavedAlert: "API Key saved successfully!",
         aiButtonLabel: "AI",
         aiLoading: "Thinking...",
+        sidebarTrendsTitle: "🐦 Twitter Trends",
+        sidebarAiTipText: "Click 🤖 AI on any repository to get a quick summary, installation tips, and technical architecture reviews instantly.",
+        minStarsOptions: {
+            0: "Any Stars",
+            100: "> 100 ⭐",
+            1000: "> 1k ⭐",
+            5000: "> 5k ⭐",
+            10000: "> 10k ⭐",
+            50000: "> 50k ⭐",
+            "custom": "Custom..."
+        }
     },
     ru: {
         title: "🔥 Тренды GitHub",
@@ -828,6 +930,17 @@ const T = {
         apiKeySavedAlert: "API Ключ успешно сохранен!",
         aiButtonLabel: "ИИ",
         aiLoading: "Думаю...",
+        sidebarTrendsTitle: "🐦 Тренды Twitter",
+        sidebarAiTipText: "Нажмите 🤖 ИИ на любом репозитории, чтобы мгновенно получить краткое описание, инструкции по установке и технический разбор.",
+        minStarsOptions: {
+            0: "Любые звезды",
+            100: "> 100 ⭐",
+            1000: "> 1k ⭐",
+            5000: "> 5k ⭐",
+            10000: "> 10k ⭐",
+            50000: "> 50k ⭐",
+            "custom": "Свой лимит..."
+        }
     }
 };
 
@@ -843,7 +956,6 @@ let aiSelectedRepo = null;
 
 const $=id=>document.getElementById(id);
 
-$('minStars').addEventListener('input',e=>{$('minStarsValue').textContent=e.target.value});
 $('searchInput').addEventListener('keydown',e=>{if(e.key==='Enter')fetchRepos()});
 $('autoRefresh').addEventListener('change',e=>{
     if(e.target.checked){fetchRepos();autoTimer=setInterval(fetchRepos,60000)}
@@ -854,6 +966,7 @@ function changeLang(lang) {
     currentLang = lang;
     localStorage.setItem("lang", lang);
     applyLanguage();
+    fetchTwitterTrends();
 }
 
 function applyLanguage() {
@@ -894,12 +1007,25 @@ function applyLanguage() {
         }
     }
     
+    // Update min stars options
+    const minStarsSelect = $('minStarsSelect');
+    if (minStarsSelect) {
+        for (let i = 0; i < minStarsSelect.options.length; i++) {
+            const val = minStarsSelect.options[i].value;
+            minStarsSelect.options[i].text = t.minStarsOptions[val] || val;
+        }
+    }
+    
     // Update other elements
     $('minStarsLabelText').textContent = t.minStars;
     $('btnRefresh').textContent = t.refresh;
     $('repositoriesFoundText').textContent = t.found;
     $('autoRefreshLabelText').textContent = t.autoRefresh;
     $('footerText').innerHTML = t.footer;
+    
+    // Sidebar static elements
+    $('sidebarTrendsTitle').innerHTML = `<span style="color: var(--blue);">🐦</span> ${t.sidebarTrendsTitle}`;
+    $('sidebarAiTipText').textContent = t.sidebarAiTipText;
     
     // Modal static elements
     $('modalTitleText').textContent = t.tweetsTitle;
@@ -939,6 +1065,18 @@ function applyLanguage() {
     
     // Update AI context text dynamically
     updateAiContextUI();
+}
+
+function onMinStarsChange() {
+    const select = $('minStarsSelect');
+    const customInput = $('minStarsCustomInput');
+    if (select.value === 'custom') {
+        customInput.style.display = 'inline-block';
+        customInput.focus();
+    } else {
+        customInput.style.display = 'none';
+        fetchRepos();
+    }
 }
 
 function toggleAnalytics() {
@@ -1086,8 +1224,15 @@ async function fetchRepos(){
     if(lang)p.set('language',lang);
     const q=$('searchInput').value.trim();
     if(q)p.set('query',q);
-    const ms=parseInt($('minStars').value);
-    if(ms>0)p.set('min_stars',ms);
+    
+    let ms = 0;
+    const selectVal = $('minStarsSelect') ? $('minStarsSelect').value : '0';
+    if (selectVal === 'custom') {
+        ms = parseInt($('minStarsCustomInput').value) || 0;
+    } else {
+        ms = parseInt(selectVal) || 0;
+    }
+    if (ms > 0) p.set('min_stars', ms);
 
     try{
         const r=await fetch('/api/trending?'+p);
@@ -1247,7 +1392,6 @@ function updateAiContextUI() {
         clearBtn.style.display = 'inline-block';
     } else {
         labelText.textContent = t.aiContextLabel || t.aiGlobalContext;
-        // Wait, if labelText is still empty let's make sure it shows the global context text:
         labelText.textContent = t.aiGlobalContext;
         clearBtn.style.display = 'none';
     }
@@ -1412,6 +1556,41 @@ async function executeAiQuery(query) {
     }
 }
 
+// Fetch Twitter Trends
+async function fetchTwitterTrends() {
+    const container = $('twitterTrendsList');
+    if (!container) return;
+    const t = T[currentLang];
+    
+    try {
+        const r = await fetch('/api/trends');
+        const d = await r.json();
+        
+        if (d.trends && d.trends.length > 0) {
+            container.innerHTML = d.trends.map(tr => {
+                return `<a class="trend-item" href="${tr.url}" target="_blank" onclick="searchByTrend(event, '${esc(tr.name)}')">
+                    <span class="trend-name">${esc(tr.name)}</span>
+                    <span class="trend-tweets">${esc(tr.tweet_count)}</span>
+                </a>`;
+            }).join('');
+        } else {
+            container.innerHTML = `<p style="text-align:center; color:var(--text-dim); font-size:0.8rem; padding:10px;">${currentLang === 'ru' ? 'Не удалось загрузить тренды' : 'No trends available'}</p>`;
+        }
+    } catch (e) {
+        container.innerHTML = `<p style="text-align:center; color:#f87171; font-size:0.8rem; padding:10px;">${currentLang === 'ru' ? 'Ошибка загрузки трендов' : 'Error loading trends'}</p>`;
+    }
+}
+
+function searchByTrend(event, trendName) {
+    event.preventDefault();
+    const searchInput = $('searchInput');
+    if (searchInput) {
+        const query = trendName.startsWith('#') ? trendName.substring(1) : trendName;
+        searchInput.value = query;
+        fetchRepos();
+    }
+}
+
 window.addEventListener('click', e => {
     const tweetsModal = $('tweetsModal');
     if (e.target === tweetsModal) {
@@ -1427,6 +1606,7 @@ function esc(s){const d=document.createElement('div');d.textContent=s;return d.i
 
 applyLanguage();
 fetchRepos();
+fetchTwitterTrends();
 </script>
 </body>
 </html>

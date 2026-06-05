@@ -120,3 +120,63 @@ def _generate_mock_tweets(query: str) -> list[dict[str, str]]:
             "is_mock": "true"
         }
     ]
+
+
+def fetch_twitter_trends() -> list[dict[str, str]]:
+    """Fetch trending topics from public Nitter instances."""
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                      "AppleWebKit/537.36 (KHTML, like Gecko) "
+                      "Chrome/120.0.0.0 Safari/537.36"
+    }
+    for instance in NITTER_INSTANCES:
+        url = f"https://{instance}/trends"
+        try:
+            logger.info("Attempting to fetch Twitter trends from Nitter instance: %s", instance)
+            resp = requests.get(url, headers=headers, timeout=5)
+            if resp.status_code == 200:
+                trends = _parse_nitter_trends(resp.text)
+                if trends:
+                    logger.info("Successfully fetched %d trends from %s", len(trends), instance)
+                    return trends
+        except Exception as e:
+            logger.warning("Nitter trends fetch failed for %s: %s", instance, e)
+            
+    # Fallback to tech trending topics
+    logger.warning("All Nitter instances failed to fetch trends. Using tech-focused mock trends.")
+    return _generate_mock_trends()
+
+
+def _parse_nitter_trends(html_content: str) -> list[dict[str, str]]:
+    """Parse Nitter trends page HTML."""
+    soup = BeautifulSoup(html_content, "html.parser")
+    trends = []
+    trending_div = soup.find(class_="trending")
+    if trending_div:
+        items = trending_div.find_all("li")
+        for item in items[:10]:  # limit to top 10 trends
+            a_tag = item.find("a")
+            if a_tag:
+                name = a_tag.text.strip()
+                count_span = item.find(class_="tweet-count")
+                count = count_span.text.strip() if count_span else ""
+                trends.append({
+                    "name": name,
+                    "tweet_count": count,
+                    "url": f"https://x.com/search?q={urllib.parse.quote(name)}"
+                })
+    return trends
+
+
+def _generate_mock_trends() -> list[dict[str, str]]:
+    """Generate mock tech trends for fallback."""
+    return [
+        {"name": "#GitHubCopilot", "tweet_count": "45.2K tweets", "url": "https://x.com/search?q=%23GitHubCopilot"},
+        {"name": "Gemini 2.5 Flash", "tweet_count": "38.1K tweets", "url": "https://x.com/search?q=Gemini%202.5%20Flash"},
+        {"name": "Next.js 15", "tweet_count": "15.4K tweets", "url": "https://x.com/search?q=Next.js%2015"},
+        {"name": "#RustLang", "tweet_count": "12.8K tweets", "url": "https://x.com/search?q=%23RustLang"},
+        {"name": "GPT-5", "tweet_count": "89.3K tweets", "url": "https://x.com/search?q=GPT-5"},
+        {"name": "#Python3", "tweet_count": "22.5K tweets", "url": "https://x.com/search?q=%23Python3"},
+        {"name": "Vite 6", "tweet_count": "8.4K tweets", "url": "https://x.com/search?q=Vite%206"},
+        {"name": "Tailwind v4", "tweet_count": "11.2K tweets", "url": "https://x.com/search?q=Tailwind%20v4"},
+    ]

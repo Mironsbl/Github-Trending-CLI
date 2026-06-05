@@ -254,6 +254,23 @@ def api_search():
     return api_trending()
 
 
+@app.route("/api/trends")
+def api_trends():
+    """API endpoint to get active Twitter/X trending topics."""
+    cached = utils.read_cache("trends", "global", 1, None, ttl=3600)  # cache trends for 1 hour
+    if cached is not None:
+        logger.info("Cache hit for Twitter trends")
+        return jsonify({"trends": cached, "cached": True})
+
+    logger.info("Cache miss for Twitter trends. Fetching.")
+    trends = twitter.fetch_twitter_trends()
+    
+    if trends:
+        utils.write_cache(trends, "trends", "global", 1, None)
+        
+    return jsonify({"trends": trends, "cached": False})
+
+
 def run_server():
     """Start the server using Waitress for production-grade hosting."""
     from waitress import serve
