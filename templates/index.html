@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🔥 GitHub Trending</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -263,6 +264,114 @@
             box-shadow: 0 0 10px rgba(96, 165, 250, 0.3);
         }
 
+        .btn-analytics {
+            padding: 12px 20px;
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 12px;
+            color: #c084fc;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+        .btn-analytics:hover {
+            background: rgba(139, 92, 246, 0.2);
+            border-color: #a78bfa;
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.2);
+            transform: translateY(-2px);
+        }
+        .btn-analytics.active {
+            background: linear-gradient(135deg, #7c3aed, #db2777);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 4px 20px rgba(124, 58, 237, 0.3);
+        }
+
+        .analytics-panel {
+            max-width: 1200px;
+            margin: 0 auto 30px;
+            padding: 0 20px;
+            display: none;
+            flex-direction: column;
+            gap: 20px;
+            animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 768px) {
+            .analytics-grid { grid-template-columns: 1fr; }
+        }
+
+        .chart-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+            min-height: 260px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .chart-container h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--text);
+            align-self: flex-start;
+        }
+        .chart-container canvas {
+            max-width: 100%;
+            max-height: 200px;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        @media (max-width: 600px) {
+            .stats-row { grid-template-columns: 1fr; }
+        }
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            transition: border-color 0.3s;
+        }
+        .stat-card:hover {
+            border-color: rgba(139, 92, 246, 0.3);
+        }
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--green);
+            background: linear-gradient(135deg, #34d399, #60a5fa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 4px;
+        }
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+        }
+
         /* Modal Styles */
         .modal {
             display: none;
@@ -477,6 +586,7 @@
         <span id="minStarsValue">0</span>
     </div>
     <button class="btn-refresh" id="btnRefresh" onclick="fetchRepos()">Refresh</button>
+    <button class="btn-analytics" id="btnAnalytics" onclick="toggleAnalytics()">📊 Analytics</button>
 </div>
 
 <div class="status-bar">
@@ -487,6 +597,34 @@
     <label class="auto-refresh">
         <input type="checkbox" id="autoRefresh"> <span id="autoRefreshLabelText">Auto-refresh (60s)</span>
     </label>
+</div>
+
+<!-- Analytics Panel -->
+<div id="analyticsPanel" class="analytics-panel">
+    <div class="analytics-grid">
+        <div class="chart-container">
+            <h3 id="chartLangTitle">Languages Distribution</h3>
+            <canvas id="languagesChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <h3 id="chartStarsTitle">Top Repositories by Stars</h3>
+            <canvas id="starsChart"></canvas>
+        </div>
+    </div>
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-value" id="statTotalRepos">—</div>
+            <div class="stat-label" id="statTotalReposLabel">Total Repositories</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="statAvgStars">—</div>
+            <div class="stat-label" id="statAvgStarsLabel">Average Stars</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="statTopLang">—</div>
+            <div class="stat-label" id="statTopLangLabel">Top Language</div>
+        </div>
+    </div>
 </div>
 
 <div id="content">
@@ -549,7 +687,14 @@ const T = {
         openTwitter: "Open in X/Twitter",
         simulated: "Simulated",
         noTweets: "No tweets found",
-        errorTweets: "Error loading tweets"
+        errorTweets: "Error loading tweets",
+        analytics: "📊 Analytics",
+        chartLang: "Languages Distribution",
+        chartStars: "Top Repositories by Stars",
+        statRepos: "Total Repositories",
+        statAvgStars: "Average Stars",
+        statTopLang: "Top Language",
+        noData: "No Data"
     },
     ru: {
         title: "🔥 Тренды GitHub",
@@ -575,7 +720,14 @@ const T = {
         openTwitter: "Открыть в X/Twitter",
         simulated: "Смоделировано",
         noTweets: "Упоминаний не найдено",
-        errorTweets: "Ошибка при загрузке твитов"
+        errorTweets: "Ошибка при загрузке твитов",
+        analytics: "📊 Аналитика",
+        chartLang: "Распределение по языкам",
+        chartStars: "Топ репозиториев по звездам",
+        statRepos: "Всего репозиториев",
+        statAvgStars: "Среднее число звезд",
+        statTopLang: "Популярный язык",
+        noData: "Нет данных"
     }
 };
 
@@ -583,6 +735,9 @@ let currentLang = localStorage.getItem("lang") || "en";
 let autoTimer=null;
 let lastFetchedRepos = null;
 let lastFetchedSource = "api";
+let analyticsVisible = false;
+let langChartInstance = null;
+let starsChartInstance = null;
 
 const $=id=>document.getElementById(id);
 
@@ -639,6 +794,14 @@ function applyLanguage() {
     $('modalTitleText').textContent = t.tweetsTitle;
     $('modalTwitterLink').textContent = t.openTwitter;
     
+    // Analytics panel text elements
+    $('btnAnalytics').textContent = t.analytics;
+    $('chartLangTitle').textContent = t.chartLang;
+    $('chartStarsTitle').textContent = t.chartStars;
+    $('statTotalReposLabel').textContent = t.statRepos;
+    $('statAvgStarsLabel').textContent = t.statAvgStars;
+    $('statTopLangLabel').textContent = t.statTopLang;
+    
     // Toggle active state on switcher buttons
     document.querySelectorAll('.lang-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.lang === lang);
@@ -648,6 +811,135 @@ function applyLanguage() {
     if (lastFetchedRepos) {
         renderRepos(lastFetchedRepos, lastFetchedSource);
     }
+}
+
+function toggleAnalytics() {
+    const panel = $('analyticsPanel');
+    const btn = $('btnAnalytics');
+    analyticsVisible = !analyticsVisible;
+    if (analyticsVisible) {
+        panel.style.display = 'flex';
+        btn.classList.add('active');
+        updateCharts();
+    } else {
+        panel.style.display = 'none';
+        btn.classList.remove('active');
+    }
+}
+
+function updateCharts() {
+    if (!analyticsVisible || !lastFetchedRepos || lastFetchedRepos.length === 0) return;
+
+    const repos = lastFetchedRepos;
+    const t = T[currentLang];
+
+    // 1. Calculate statistics
+    const totalRepos = repos.length;
+    const avgStars = Math.round(repos.reduce((sum, r) => sum + (r.stargazers_count || 0), 0) / totalRepos);
+    
+    const langCounts = {};
+    repos.forEach(r => {
+        const l = r.language || (currentLang === 'ru' ? 'Неизвестный' : 'Unknown');
+        langCounts[l] = (langCounts[l] || 0) + 1;
+    });
+    
+    let topLang = t.noData;
+    let maxCount = 0;
+    Object.entries(langCounts).forEach(([l, count]) => {
+        if (count > maxCount) {
+            maxCount = count;
+            topLang = l;
+        }
+    });
+
+    $('statTotalRepos').textContent = totalRepos;
+    $('statAvgStars').textContent = avgStars.toLocaleString();
+    $('statTopLang').textContent = topLang;
+
+    // 2. Setup Chart.js defaults
+    Chart.defaults.color = '#8b949e';
+    Chart.defaults.borderColor = 'rgba(48, 54, 61, 0.4)';
+
+    // 3. Languages Doughnut Chart
+    const langLabels = Object.keys(langCounts);
+    const langData = Object.values(langCounts);
+    const langColors = langLabels.map(l => LANG_COLORS[l] || '#8b949e');
+
+    if (langChartInstance) langChartInstance.destroy();
+    
+    const ctxLang = $('languagesChart').getContext('2d');
+    langChartInstance = new Chart(ctxLang, {
+        type: 'doughnut',
+        data: {
+            labels: langLabels,
+            datasets: [{
+                data: langData,
+                backgroundColor: langColors,
+                borderWidth: 1,
+                borderColor: '#0d1117'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        boxWidth: 10,
+                        font: { family: 'Inter', size: 9 }
+                    }
+                }
+            }
+        }
+    });
+
+    // 4. Stars Comparison Bar Chart
+    const topRepos = [...repos].sort((a, b) => (b.stargazers_count || 0) - (a.stargazers_count || 0)).slice(0, 5);
+    const repoLabels = topRepos.map(r => {
+        const name = r.full_name || 'unknown';
+        return name.split('/')[1] || name;
+    });
+    const repoStars = topRepos.map(r => r.stargazers_count || 0);
+
+    if (starsChartInstance) starsChartInstance.destroy();
+
+    const ctxStars = $('starsChart').getContext('2d');
+    starsChartInstance = new Chart(ctxStars, {
+        type: 'bar',
+        data: {
+            labels: repoLabels,
+            datasets: [{
+                label: currentLang === 'ru' ? 'Звезды' : 'Stars',
+                data: repoStars,
+                backgroundColor: 'rgba(96, 165, 250, 0.8)',
+                hoverBackgroundColor: 'rgba(96, 165, 250, 1)',
+                borderRadius: 6,
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: value => value >= 1000 ? (value / 1000) + 'k' : value,
+                        font: { family: 'Inter', size: 9 }
+                    }
+                },
+                x: {
+                    ticks: {
+                        font: { family: 'Inter', size: 9 }
+                    }
+                }
+            }
+        }
+    });
 }
 
 async function fetchRepos(){
@@ -694,9 +986,14 @@ function renderRepos(repos, source) {
 
     if(!repos.length){
         c.innerHTML=`<div class="error-box"><h3>${t.noRepos}</h3><p>${t.tryFilters}</p></div>`;
+        if (analyticsVisible) updateCharts();
         return;
     }
     c.innerHTML='<div class="grid">'+repos.map((r,i)=>card(r,i)).join('')+'</div>';
+    
+    if (analyticsVisible) {
+        updateCharts();
+    }
 }
 
 function showError(m){
