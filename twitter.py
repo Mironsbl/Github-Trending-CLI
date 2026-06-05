@@ -11,11 +11,13 @@ logger = logging.getLogger("github_trending_twitter")
 
 # A list of active public Nitter instances for redundancy
 NITTER_INSTANCES = [
-    "nitter.poast.org",
+    "xcancel.com",
+    "nitter.catsarch.com",
+    "nitter.tiekoetter.com",
+    "nitter.kareem.one",
     "nitter.privacydev.net",
-    "nitter.no-logs.com",
-    "nitter.perennialte.ch",
 ]
+
 
 
 def search_twitter_mentions(query: str) -> list[dict[str, str]]:

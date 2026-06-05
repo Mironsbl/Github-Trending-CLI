@@ -599,6 +599,13 @@
 <div class="header">
     <div class="lang-switcher">
         <button class="lang-btn" onclick="openApiKeyModal()" title="Gemini API Key">🔑</button>
+        <select class="filter-select" id="twitterProxySelect" onchange="changeTwitterProxy()" style="padding: 6px 12px; height: 32px; border-radius: 8px; font-size: 0.78rem; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-dim); transition: all 0.2s ease; cursor: pointer; outline: none; margin-right: 4px; padding-right: 24px; background-position: right 8px center;">
+            <option value="direct">X.com (Direct)</option>
+            <option value="https://xcancel.com">xcancel.com (Proxy)</option>
+            <option value="https://nitter.catsarch.com">nitter.catsarch.com</option>
+            <option value="https://nitter.tiekoetter.com">nitter.tiekoetter.com</option>
+            <option value="https://nitter.kareem.one">nitter.kareem.one</option>
+        </select>
         <button class="lang-btn active" data-lang="en" onclick="changeLang('en')">EN</button>
         <button class="lang-btn" data-lang="ru" onclick="changeLang('ru')">RU</button>
     </div>
@@ -748,8 +755,17 @@
         <div id="modalTweets" style="max-height: 350px; overflow-y: auto; padding-right: 5px; margin-bottom: 20px;">
             <div class="loading"><div class="spinner"></div></div>
         </div>
-        <div style="display:flex; justify-content:flex-end;">
-            <a id="modalTwitterLink" href="#" target="_blank" class="btn-refresh" style="display:inline-block; text-decoration:none; text-align:center; font-size:0.85rem; padding: 10px 18px;">Open in X/Twitter</a>
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-top:20px; border-top:1px solid var(--border); padding-top:16px;">
+            <div style="display:flex; align-items:center; gap:8px; font-size:0.82rem; color:var(--text-dim);">
+                <span id="modalAltSearchText">Alt:</span>
+                <a id="modalGithubSearchLink" href="#" target="_blank" style="color:var(--blue); text-decoration:none;">GitHub</a> •
+                <a id="modalBlueskySearchLink" href="#" target="_blank" style="color:var(--blue); text-decoration:none;">Bluesky</a> •
+                <a id="modalGoogleSearchLink" href="#" target="_blank" style="color:var(--blue); text-decoration:none;">Google</a>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button id="modalAiOpinionBtn" onclick="analyzeSentimentForRepo()" style="background:rgba(139,92,246,0.1); border:1px solid rgba(139,92,246,0.2); color:#c084fc; padding: 10px 18px; border-radius:12px; font-size:0.85rem; font-weight:600; cursor:pointer; transition:all 0.2s;">🤖 AI Opinion</button>
+                <a id="modalTwitterLink" href="#" target="_blank" class="btn-refresh" style="display:inline-block; text-decoration:none; text-align:center; font-size:0.85rem; padding: 10px 18px;">Open in X/Twitter</a>
+            </div>
         </div>
     </div>
 </div>
@@ -878,6 +894,18 @@ const T = {
             10000: "> 10k ⭐",
             50000: "> 50k ⭐",
             "custom": "Custom..."
+        },
+        modalAltSearch: "Alt Search:",
+        modalAiOpinion: "🤖 AI Sentiment",
+        modalAiOpinionLoading: "Analyzing community discussions...",
+        modalAiOpinionHeader: "🤖 AI Community Sentiment Analysis",
+        twitterProxy: "Twitter Proxy",
+        twitterProxyOptions: {
+            "direct": "X.com (Direct)",
+            "https://xcancel.com": "xcancel.com (Proxy)",
+            "https://nitter.catsarch.com": "nitter.catsarch.com",
+            "https://nitter.tiekoetter.com": "nitter.tiekoetter.com",
+            "https://nitter.kareem.one": "nitter.kareem.one"
         }
     },
     ru: {
@@ -940,6 +968,18 @@ const T = {
             10000: "> 10k ⭐",
             50000: "> 50k ⭐",
             "custom": "Свой лимит..."
+        },
+        modalAltSearch: "Альтернативный поиск:",
+        modalAiOpinion: "🤖 Анализ мнений ИИ",
+        modalAiOpinionLoading: "Анализирую обсуждения в сообществе...",
+        modalAiOpinionHeader: "🤖 ИИ-анализ мнений сообщества разработчиков",
+        twitterProxy: "Прокси Twitter",
+        twitterProxyOptions: {
+            "direct": "X.com (Напрямую)",
+            "https://xcancel.com": "xcancel.com (Прокси)",
+            "https://nitter.catsarch.com": "nitter.catsarch.com",
+            "https://nitter.tiekoetter.com": "nitter.tiekoetter.com",
+            "https://nitter.kareem.one": "nitter.kareem.one"
         }
     }
 };
@@ -1030,6 +1070,8 @@ function applyLanguage() {
     // Modal static elements
     $('modalTitleText').textContent = t.tweetsTitle;
     $('modalTwitterLink').textContent = t.openTwitter;
+    $('modalAltSearchText').textContent = t.modalAltSearch;
+    $('modalAiOpinionBtn').textContent = t.modalAiOpinion;
     
     // Analytics panel text elements
     $('btnAnalytics').textContent = t.analytics;
@@ -1058,6 +1100,17 @@ function applyLanguage() {
         btn.classList.toggle('active', btn.dataset.lang === lang);
     });
     
+    // Update twitter proxy select
+    const proxySelect = $('twitterProxySelect');
+    if (proxySelect) {
+        proxySelect.value = localStorage.getItem("twitter_proxy") || "direct";
+        for (let i = 0; i < proxySelect.options.length; i++) {
+            const val = proxySelect.options[i].value;
+            proxySelect.options[i].text = t.twitterProxyOptions[val] || val;
+        }
+    }
+    updateTwitterButtonLabel();
+
     // Re-render the results if we already have some loaded
     if (lastFetchedRepos) {
         renderRepos(lastFetchedRepos, lastFetchedSource);
@@ -1065,6 +1118,60 @@ function applyLanguage() {
     
     // Update AI context text dynamically
     updateAiContextUI();
+}
+
+function getTwitterUrl(target, isSearch = false) {
+    const proxy = localStorage.getItem("twitter_proxy") || "direct";
+    if (isSearch) {
+        const query = encodeURIComponent(target);
+        if (proxy === "direct") {
+            return `https://x.com/search?q=${query}`;
+        } else {
+            return `${proxy}/search?q=${query}`;
+        }
+    }
+    
+    if (!target) return '#';
+    if (proxy === "direct") {
+        let clean = target;
+        const nitterMatch = clean.match(/https?:\/\/([^\/]+)/);
+        if (nitterMatch && nitterMatch[1] !== 'x.com' && nitterMatch[1] !== 'twitter.com') {
+            clean = clean.replace(/https?:\/\/[^\/]+/, 'https://x.com');
+        }
+        return clean;
+    } else {
+        let clean = target;
+        clean = clean.replace(/https?:\/\/[^\/]+/, proxy);
+        return clean;
+    }
+}
+
+function changeTwitterProxy() {
+    const val = $('twitterProxySelect').value;
+    localStorage.setItem("twitter_proxy", val);
+    
+    const modal = $('tweetsModal');
+    if (modal && modal.classList.contains('open')) {
+        const repoName = $('modalSubtitle').textContent;
+        $('modalTwitterLink').href = getTwitterUrl(repoName, true);
+        openTweets(repoName);
+    }
+    
+    updateTwitterButtonLabel();
+    fetchTwitterTrends();
+}
+
+function updateTwitterButtonLabel() {
+    const proxy = localStorage.getItem("twitter_proxy") || "direct";
+    const btn = $('modalTwitterLink');
+    if (!btn) return;
+    
+    if (proxy === "direct") {
+        btn.textContent = currentLang === 'ru' ? "Открыть в X/Twitter" : "Open in X/Twitter";
+    } else {
+        const domain = proxy.replace('https://', '');
+        btn.textContent = currentLang === 'ru' ? `Открыть в ${domain}` : `Open in ${domain}`;
+    }
 }
 
 function onMinStarsChange() {
@@ -1328,7 +1435,10 @@ async function openTweets(repoName) {
     modal.classList.add('open');
     container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
     
-    $('modalTwitterLink').href = `https://x.com/search?q=${encodeURIComponent(repoName)}`;
+    $('modalTwitterLink').href = getTwitterUrl(repoName, true);
+    $('modalGithubSearchLink').href = `https://github.com/search?q=${encodeURIComponent(repoName)}&type=discussions`;
+    $('modalBlueskySearchLink').href = `https://bsky.app/search?q=${encodeURIComponent(repoName)}`;
+    $('modalGoogleSearchLink').href = `https://www.google.com/search?q=${encodeURIComponent(repoName + " github discussions reviews")}`;
 
     try {
         const r = await fetch(`/api/tweets?q=${encodeURIComponent(repoName)}`);
@@ -1339,7 +1449,7 @@ async function openTweets(repoName) {
                 const badge = t.is_mock === "true" ? `<span class="tweet-badge-mock">${T[currentLang].simulated}</span>` : '';
                 return `<div class="tweet-card">
                     <div class="tweet-header">
-                        <a class="tweet-author" href="${t.url}" target="_blank">${esc(t.author)}</a>
+                        <a class="tweet-author" href="${getTwitterUrl(t.url)}" target="_blank">${esc(t.author)}</a>
                         <div style="display:flex; gap: 8px; align-items:center;">
                             ${badge}
                             <span class="tweet-date">${esc(t.date)}</span>
@@ -1353,6 +1463,67 @@ async function openTweets(repoName) {
         }
     } catch(e) {
         container.innerHTML = `<p style="text-align:center;color:#f87171;padding:20px;">${T[currentLang].errorTweets}</p>`;
+    }
+}
+
+async function analyzeSentimentForRepo() {
+    const repoName = $('modalSubtitle').textContent;
+    const container = $('modalTweets');
+    const t = T[currentLang];
+    
+    container.innerHTML = `<div class="loading"><div class="spinner" style="margin-bottom:8px;"></div><p style="color:var(--text-dim);font-size:0.82rem;">${t.modalAiOpinionLoading}</p></div>`;
+    
+    const repoObj = lastFetchedRepos ? lastFetchedRepos.find(r => (r.full_name || r.name) === repoName) : null;
+    const desc = repoObj ? repoObj.description : "";
+    const lang = repoObj ? repoObj.language : "";
+    
+    const query = currentLang === 'ru'
+        ? `Каковы отзывы разработчиков, общее мнение (sentiment) и обсуждения вокруг репозитория '${repoName}' на GitHub, Reddit и в соцсетях? Что людям нравится, а что критикуют? Сделай структурированный и краткий разбор мнений сообщества на русском языке.`
+        : `What are the developer reviews, general sentiment, and discussions around the repository '${repoName}' on GitHub, Reddit, and social media? What do people like, and what are the criticisms? Provide a structured, concise analysis of community opinions in English.`;
+        
+    const key = localStorage.getItem("gemini_api_key") || "";
+    const payload = {
+        name: repoName,
+        description: desc,
+        language: lang,
+        query: query
+    };
+    
+    try {
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        if (key) {
+            headers['X-Gemini-Key'] = key;
+        }
+        
+        const r = await fetch('/api/ai/summarize', {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(payload)
+        });
+        
+        const d = await r.json();
+        
+        if (d.error) {
+            container.innerHTML = `<p style="text-align:center;color:#f87171;padding:20px;">❌ Error: ${esc(d.error)}</p>`;
+            if (d.error.includes("Missing GEMINI_API_KEY")) {
+                openApiKeyModal();
+            }
+        } else if (d.summary) {
+            container.innerHTML = `
+                <div style="background: rgba(124, 58, 237, 0.08); border: 1px solid rgba(124, 58, 237, 0.25); border-radius: 12px; padding: 16px; margin-bottom: 12px; backdrop-filter: blur(10px);">
+                    <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 12px; color: #c084fc; display:flex; align-items:center; gap:6px;">
+                        <span>📊</span> ${t.modalAiOpinionHeader}
+                    </h4>
+                    <div style="font-size:0.9rem; line-height:1.5; color:var(--text); word-break:break-word; text-align:left;">
+                        ${renderMarkdown(d.summary)}
+                    </div>
+                </div>
+            `;
+        }
+    } catch (e) {
+        container.innerHTML = `<p style="text-align:center;color:#f87171;padding:20px;">❌ Failed: ${e.message}</p>`;
     }
 }
 
@@ -1568,7 +1739,8 @@ async function fetchTwitterTrends() {
         
         if (d.trends && d.trends.length > 0) {
             container.innerHTML = d.trends.map(tr => {
-                return `<a class="trend-item" href="${tr.url}" target="_blank" onclick="searchByTrend(event, '${esc(tr.name)}')">
+                const trendUrl = getTwitterUrl(tr.name, true);
+                return `<a class="trend-item" href="${trendUrl}" target="_blank" onclick="searchByTrend(event, '${esc(tr.name)}')">
                     <span class="trend-name">${esc(tr.name)}</span>
                     <span class="trend-tweets">${esc(tr.tweet_count)}</span>
                 </a>`;
