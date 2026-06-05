@@ -669,7 +669,20 @@
         <input type="number" id="minStarsCustomInput" placeholder="Min Stars" style="display:none; width: 100px; padding: 10px 14px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 0.85rem; outline: none; transition: border-color 0.3s;" onchange="fetchRepos()">
     </div>
     <button class="btn-refresh" id="btnRefresh" onclick="fetchRepos()">Refresh</button>
+    <button class="btn-analytics" id="btnAdvancedToggle" onclick="toggleAdvancedFilters()">⚙️ Advanced</button>
     <button class="btn-analytics" id="btnAnalytics" onclick="toggleAnalytics()">📊 Analytics</button>
+</div>
+
+<!-- Advanced Filters Panel -->
+<div id="advancedFiltersPanel" style="display:none; max-width: 1200px; margin: -20px auto 30px; padding: 16px 20px; background: rgba(22, 27, 34, 0.4); border: 1px solid var(--border); border-radius: 12px; backdrop-filter: blur(10px); gap: 16px; flex-wrap: wrap; align-items: center; animation: slideDown 0.3s ease;">
+    <div style="display:flex; flex-direction:column; gap:6px; min-width: 180px; align-items: flex-start;">
+        <span style="font-size:0.75rem; color:var(--text-dim);" id="advTopicLabel">Topic / Tag</span>
+        <input type="text" id="advTopicInput" placeholder="e.g. machine-learning" style="padding: 10px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 0.85rem; outline: none; transition: border-color 0.3s; width: 100%;" onchange="fetchRepos()">
+    </div>
+    <div style="display:flex; flex-direction:column; gap:6px; min-width: 140px; align-items: flex-start;">
+        <span style="font-size:0.75rem; color:var(--text-dim);" id="advMinForksLabel">Min Forks</span>
+        <input type="number" id="advMinForksInput" placeholder="Min Forks" style="padding: 10px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 0.85rem; outline: none; transition: border-color 0.3s; width: 100%;" onchange="fetchRepos()">
+    </div>
 </div>
 
 <div class="status-bar">
@@ -817,6 +830,13 @@
         <span id="aiContextLabel">Global search context active</span>
         <button id="aiContextClearBtn" onclick="clearAiContext()" style="background: none; border: none; color: #f87171; cursor: pointer; font-size: 0.75rem; display: none;">Clear</button>
     </div>
+    
+    <!-- Chat Chips / Quick Suggestions -->
+    <div style="display: flex; gap: 8px; padding: 6px 12px 10px; background: rgba(13, 17, 23, 0.8); border-top: 1px solid rgba(255,255,255,0.02); overflow-x: auto; white-space: nowrap; scrollbar-width: none; -ms-overflow-style: none;">
+        <button onclick="sendQuickAiQuery('suggest')" class="lang-btn" style="padding: 6px 12px; border-radius: 20px; font-size: 0.72rem; flex-shrink: 0; background: rgba(139,92,246,0.12); border:1px solid rgba(139,92,246,0.3); color:#c084fc;" id="chipSuggestText">🚀 Suggest Hot Repos</button>
+        <button onclick="sendQuickAiQuery('explain')" class="lang-btn" style="padding: 6px 12px; border-radius: 20px; font-size: 0.72rem; flex-shrink: 0; background: rgba(249,115,22,0.12); border:1px solid rgba(249,115,22,0.3); color:#fb923c;" id="chipExplainText">🔥 Explain Trends</button>
+        <button onclick="sendQuickAiQuery('help')" class="lang-btn" style="padding: 6px 12px; border-radius: 20px; font-size: 0.72rem; flex-shrink: 0; background: rgba(255,255,255,0.03); border:1px solid var(--border); color:var(--text-dim);" id="chipHelpText">❓ Help Guide</button>
+    </div>
 
     <!-- Chat Input -->
     <div style="padding: 12px; border-top: 1px solid var(--border); background: rgba(13, 17, 23, 0.8); display: flex; gap: 8px; align-items: center;">
@@ -899,6 +919,12 @@ const T = {
         modalAiOpinion: "🤖 AI Sentiment",
         modalAiOpinionLoading: "Analyzing community discussions...",
         modalAiOpinionHeader: "🤖 AI Community Sentiment Analysis",
+        advToggle: "Advanced",
+        advTopic: "Topic / Tag",
+        advMinForks: "Min Forks",
+        chipSuggest: "🚀 Suggest Hot Repos",
+        chipExplain: "🔥 Explain Trends",
+        chipHelp: "❓ Help Guide",
         twitterProxy: "Twitter Proxy",
         twitterProxyOptions: {
             "direct": "X.com (Direct)",
@@ -973,6 +999,12 @@ const T = {
         modalAiOpinion: "🤖 Анализ мнений ИИ",
         modalAiOpinionLoading: "Анализирую обсуждения в сообществе...",
         modalAiOpinionHeader: "🤖 ИИ-анализ мнений сообщества разработчиков",
+        advToggle: "Фильтры",
+        advTopic: "Тема / Тег",
+        advMinForks: "Мин. форков",
+        chipSuggest: "🚀 Рекомендовать тренды",
+        chipExplain: "🔥 Объяснить темы",
+        chipHelp: "❓ Справка ИИ",
         twitterProxy: "Прокси Twitter",
         twitterProxyOptions: {
             "direct": "X.com (Напрямую)",
@@ -1094,6 +1126,16 @@ function applyLanguage() {
     $('aiChatInput').placeholder = t.aiPlaceholder;
     $('aiChatSendBtn').textContent = t.aiSend;
     $('aiContextClearBtn').textContent = t.aiClearContext;
+    
+    // Update advanced panel translations
+    $('advTopicLabel').textContent = t.advTopic;
+    $('advMinForksLabel').textContent = t.advMinForks;
+    $('btnAdvancedToggle').innerHTML = `⚙️ ${t.advToggle}`;
+    
+    // Update chip buttons
+    $('chipSuggestText').textContent = t.chipSuggest;
+    $('chipExplainText').textContent = t.chipExplain;
+    $('chipHelpText').textContent = t.chipHelp;
     
     // Toggle active state on switcher buttons
     document.querySelectorAll('.lang-btn').forEach(btn => {
@@ -1341,6 +1383,12 @@ async function fetchRepos(){
     }
     if (ms > 0) p.set('min_stars', ms);
 
+    const topicVal = $('advTopicInput') ? $('advTopicInput').value.trim() : '';
+    if(topicVal) p.set('topic', topicVal);
+    
+    const forksVal = $('advMinForksInput') ? $('advMinForksInput').value.trim() : '';
+    if(forksVal) p.set('min_forks', forksVal);
+
     try{
         const r=await fetch('/api/trending?'+p);
         const d=await r.json();
@@ -1348,6 +1396,7 @@ async function fetchRepos(){
         lastFetchedRepos = d.repos;
         lastFetchedSource = d.source;
         renderRepos(d.repos, d.source);
+        fetchTwitterTrends(); // Dynamically update dev trends sidebar when repositories change
     }catch(e){
         showError(currentLang === 'ru' ? 'Не удалось подключиться. Сервер запущен?' : 'Failed to connect. Is the server running?');
     }
@@ -1444,7 +1493,18 @@ async function openTweets(repoName) {
         const r = await fetch(`/api/tweets?q=${encodeURIComponent(repoName)}`);
         const d = await r.json();
         
-        if (d.tweets && d.tweets.length > 0) {
+        const isMocked = d.tweets && d.tweets.length > 0 && d.tweets[0].is_mock === "true";
+        if (isMocked) {
+            container.innerHTML = `
+                <div style="text-align:center; padding:16px; color:var(--text-dim); font-size:0.85rem; border:1px dashed var(--border); border-radius:12px; margin-bottom:16px; background:rgba(255,255,255,0.02);">
+                    ⚠️ ${currentLang === 'ru' ? 'Связь с Twitter/X временно недоступна. Запускаю ИИ-анализ мнений сообщества о репозитории...' : 'Twitter/X is down. Launching AI community opinion analysis on this repository...'}
+                </div>
+                <div class="loading"><div class="spinner"></div></div>
+            `;
+            setTimeout(() => {
+                analyzeSentimentForRepo();
+            }, 800);
+        } else if (d.tweets && d.tweets.length > 0) {
             container.innerHTML = d.tweets.map(t => {
                 const badge = t.is_mock === "true" ? `<span class="tweet-badge-mock">${T[currentLang].simulated}</span>` : '';
                 return `<div class="tweet-card">
@@ -1773,6 +1833,41 @@ function searchByTrend(event, trendName) {
             executeAiQuery(explainQuery);
         }
     }
+}
+
+function toggleAdvancedFilters() {
+    const panel = $('advancedFiltersPanel');
+    const btn = $('btnAdvancedToggle');
+    const isHidden = panel.style.display === 'none';
+    panel.style.display = isHidden ? 'flex' : 'none';
+    btn.classList.toggle('active', isHidden);
+}
+
+function sendQuickAiQuery(type) {
+    const t = T[currentLang];
+    let query = '';
+    
+    if (type === 'suggest') {
+        query = currentLang === 'ru'
+            ? "Проанализируй список репозиториев на этой странице и порекомендуй 3 самых интересных или быстрорастущих проекта. Объясни простыми словами, почему на них стоит обратить внимание."
+            : "Analyze the list of repositories on this page and recommend 3 particularly interesting or fast-growing projects. Explain in simple terms why they are worth looking at.";
+    } else if (type === 'explain') {
+        query = currentLang === 'ru'
+            ? "Какие главные технологические темы или паттерны объединяют трендовые репозитории на этой странице? Сделай краткий обзор текущих направлений развития."
+            : "What are the main technological themes or patterns that unite the trending repositories on this page? Provide a brief summary of the current directions of development.";
+    } else {
+        query = currentLang === 'ru'
+            ? "Расскажи, какими возможностями ты обладаешь как ИИ-помощник и как ты можешь помочь мне анализировать код и находить полезные проекты?"
+            : "Tell me, what capabilities do you have as an AI assistant and how can you help me analyze code and find useful projects?";
+    }
+    
+    // Ensure AI pane is open
+    const pane = $('aiChatPane');
+    if (pane) pane.style.display = 'flex';
+    
+    appendAiMessage('user', query);
+    aiHistory.push({ role: 'user', text: query });
+    executeAiQuery(query);
 }
 
 window.addEventListener('click', e => {

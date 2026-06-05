@@ -43,12 +43,14 @@ def api_trending():
     topic = request.args.get("topic") or None
     sort = request.args.get("sort", "stars")
     min_stars = request.args.get("min_stars")
+    min_forks = request.args.get("min_forks")
     source = request.args.get("source", "api")
     query = request.args.get("query") or None
     token = request.args.get("token") or os.environ.get("GITHUB_TOKEN")
     no_cache = request.args.get("no_cache") == "true"
 
     min_stars = int(min_stars) if min_stars else None
+    min_forks = int(min_forks) if min_forks else None
 
     # Check cache first if not explicitly bypassed
     if not no_cache:
@@ -77,7 +79,8 @@ def api_trending():
                 logger.warning("Scraper failed or returned no results; falling back to Search API")
                 repos = github_api.fetch_trending_repos(
                     duration=duration, limit=limit, language=language,
-                    topic=topic, sort=sort, min_stars=min_stars, token=token,
+                    topic=topic, sort=sort, min_stars=min_stars,
+                    min_forks=min_forks, token=token,
                     query_keyword=query,
                 )
                 for r in repos:
@@ -93,6 +96,7 @@ def api_trending():
                 topic=topic,
                 sort=sort,
                 min_stars=min_stars,
+                min_forks=min_forks,
                 token=token,
                 query_keyword=query,
             )

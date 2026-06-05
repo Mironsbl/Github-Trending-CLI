@@ -21,6 +21,7 @@ def fetch_trending_repos(
     topic: str | None = None,
     sort: str = "stars",
     min_stars: int | None = None,
+    min_forks: int | None = None,
     token: str | None = None,
     query_keyword: str | None = None,
 ) -> list[dict[str, Any]]:
@@ -33,6 +34,7 @@ def fetch_trending_repos(
         topic: Optional topic filter (e.g. 'machine-learning').
         sort: Sort field — 'stars', 'forks', or 'updated'.
         min_stars: Minimum star count filter.
+        min_forks: Minimum fork count filter.
         token: Optional GitHub personal-access token.
         query_keyword: Optional keyword query.
 
@@ -53,6 +55,8 @@ def fetch_trending_repos(
         query += f" topic:{topic}"
     if min_stars is not None and min_stars > 0:
         query += f" stars:>={min_stars}"
+    if min_forks is not None and min_forks > 0:
+        query += f" forks:>={min_forks}"
 
     # Resolve token: explicit arg → env var → unauthenticated
     resolved_token = token or os.environ.get("GITHUB_TOKEN")
