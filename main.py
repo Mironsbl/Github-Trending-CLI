@@ -165,12 +165,13 @@ def _start_web_server(args: argparse.Namespace) -> None:
     if args.token:
         os.environ["GITHUB_TOKEN"] = args.token
 
+    port = int(os.environ.get("PORT", 5050))
     console.print("\n[bold bright_magenta]🚀 Starting GitHub Trending Web UI...[/bold bright_magenta]")
-    console.print("[dim]Open http://127.0.0.1:5000 in your browser.[/dim]\n")
+    console.print(f"[dim]Open http://127.0.0.1:{port} in your browser.[/dim]\n")
 
     import web  # noqa: E402 — lazy import so Flask is optional for CLI
 
-    webbrowser.open("http://127.0.0.1:5000")
+    webbrowser.open(f"http://127.0.0.1:{port}")
     web.run_server()
 
 

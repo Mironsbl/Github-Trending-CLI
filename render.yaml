@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: github-trending-web
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py --web
+    envVars:
+      - key: PORT
+        value: 5050
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false

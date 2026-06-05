@@ -289,10 +289,14 @@ def api_trends():
 def run_server():
     """Start the server using Waitress for production-grade hosting."""
     from waitress import serve
-    logger.info("🔥 Starting GitHub Trending Web UI on http://localhost:5000 (powered by Waitress)")
-    serve(app, host="127.0.0.1", port=5000)
+    port = int(os.environ.get("PORT", 5050))
+    host = os.environ.get("HOST", "0.0.0.0")
+    logger.info("🔥 Starting GitHub Trending Web UI on http://%s:%d (powered by Waitress)", host, port)
+    serve(app, host=host, port=port)
 
 
 if __name__ == "__main__":
-    logger.info("🔥 Starting GitHub Trending Web UI on http://localhost:5000 (debug/dev mode)")
-    app.run(host="127.0.0.1", port=5000, debug=True)
+    port = int(os.environ.get("PORT", 5050))
+    host = os.environ.get("HOST", "127.0.0.1")
+    logger.info("🔥 Starting GitHub Trending Web UI on http://%s:%d (debug/dev mode)", host, port)
+    app.run(host=host, port=port, debug=True)
