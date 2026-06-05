@@ -539,6 +539,7 @@
 
 <div class="header">
     <div class="lang-switcher">
+        <button class="lang-btn" onclick="openApiKeyModal()" title="Gemini API Key">🔑</button>
         <button class="lang-btn active" data-lang="en" onclick="changeLang('en')">EN</button>
         <button class="lang-btn" data-lang="ru" onclick="changeLang('ru')">RU</button>
     </div>
@@ -579,6 +580,14 @@
     <select class="filter-select" id="sourceSelect">
         <option value="api">GitHub API</option>
         <option value="trending">Trending Page</option>
+    </select>
+    <select class="filter-select" id="limitSelect">
+        <option value="10">10 Repos</option>
+        <option value="25" selected>25 Repos</option>
+        <option value="50">50 Repos</option>
+        <option value="100">100 Repos</option>
+        <option value="250">250 Repos</option>
+        <option value="500">500 Repos</option>
     </select>
     <div class="stars-filter">
         <span id="minStarsLabelText">⭐ Min:</span>
@@ -654,6 +663,61 @@
     </div>
 </div>
 
+<!-- API Key Configuration Modal -->
+<div id="apiKeyModal" class="modal">
+    <div class="modal-content" style="max-width: 400px; padding: 24px;">
+        <span class="close-modal" onclick="closeApiKeyModal()">&times;</span>
+        <h3 id="apiKeyModalTitleText" style="font-size:1.2rem; font-weight:800; margin-bottom:12px; color:var(--text);">🔑 Gemini API Key Settings</h3>
+        <p style="color:var(--text-dim); font-size:0.82rem; margin-bottom:16px; text-align:left;" id="apiKeyModalDescText">Enter your Google Gemini API key. The key will be stored securely in your browser's localStorage and sent in your request headers.</p>
+        <input type="password" id="apiKeyInput" placeholder="AIzaSy..." style="width:100%; padding:10px 12px; background:var(--bg-input); border:1px solid var(--border); border-radius:10px; color:var(--text); font-size:0.85rem; font-family:inherit; outline:none; margin-bottom:16px;">
+        <div style="display:flex; justify-content:flex-end; gap:8px;">
+            <button onclick="closeApiKeyModal()" class="btn-retry" style="margin-top:0; padding: 8px 16px;" id="apiKeyCancelBtnText">Cancel</button>
+            <button onclick="saveApiKey()" class="btn-refresh" style="padding: 8px 16px;" id="apiKeySaveBtnText">Save Key</button>
+        </div>
+    </div>
+</div>
+
+<!-- Floating AI Chat Button -->
+<div id="aiChatBubble" onclick="toggleAiChat()" style="position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #7c3aed, #db2777); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 32px rgba(124, 58, 237, 0.4); cursor: pointer; z-index: 90; transition: transform 0.3s ease; border: 1px solid rgba(255, 255, 255, 0.1);">
+    <span style="font-size: 28px;">🤖</span>
+    <span id="aiBadge" style="position: absolute; top: -5px; right: -5px; background: #34d399; color: #0d1117; font-size: 0.65rem; font-weight: 800; padding: 2px 6px; border-radius: 10px; box-shadow: 0 2px 8px rgba(52, 211, 153, 0.4);">Gemini</span>
+</div>
+
+<!-- AI Agent Chat Pane -->
+<div id="aiChatPane" style="position: fixed; bottom: 100px; right: 30px; width: 380px; height: 500px; background: rgba(22, 27, 34, 0.95); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6); display: none; flex-direction: column; z-index: 95; backdrop-filter: blur(12px); overflow: hidden; animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;">
+    <!-- Chat Header -->
+    <div style="padding: 16px; background: linear-gradient(135deg, #7c3aed, #db2777); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 24px;">🤖</span>
+            <div>
+                <h4 style="font-weight: 700; font-size: 0.95rem; color: white;" id="aiAgentTitleText">Gemini AI Agent</h4>
+                <p style="font-size: 0.72rem; color: rgba(255,255,255,0.8);" id="aiAgentStatusText">Online • Ready to assist</p>
+            </div>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <button onclick="openApiKeyModal()" style="background: none; border: none; font-size: 16px; cursor: pointer; color: white; display:flex; align-items:center;" title="API Key Settings">🔑</button>
+            <button onclick="toggleAiChat()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: rgba(255, 255, 255, 0.7); line-height: 1;">&times;</button>
+        </div>
+    </div>
+    
+    <!-- Chat Messages -->
+    <div id="aiChatMessages" style="flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; font-size: 0.88rem;">
+        <!-- Messages loaded dynamically -->
+    </div>
+    
+    <!-- Context Indicator -->
+    <div id="aiChatContext" style="padding: 6px 12px; background: rgba(30, 41, 59, 0.6); border-top: 1px solid var(--border); font-size: 0.75rem; color: var(--blue); display: flex; justify-content: space-between; align-items: center;">
+        <span id="aiContextLabel">Global search context active</span>
+        <button id="aiContextClearBtn" onclick="clearAiContext()" style="background: none; border: none; color: #f87171; cursor: pointer; font-size: 0.75rem; display: none;">Clear</button>
+    </div>
+
+    <!-- Chat Input -->
+    <div style="padding: 12px; border-top: 1px solid var(--border); background: rgba(13, 17, 23, 0.8); display: flex; gap: 8px; align-items: center;">
+        <input type="text" id="aiChatInput" placeholder="Ask anything..." style="flex: 1; padding: 10px 14px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 0.85rem; font-family: inherit; outline: none;" onkeydown="if(event.key==='Enter')sendAiChatMessage()">
+        <button onclick="sendAiChatMessage()" id="aiChatSendBtn" style="padding: 10px 14px; background: var(--gradient); border: none; border-radius: 10px; color: white; cursor: pointer; font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; justify-content: center;">Send</button>
+    </div>
+</div>
+
 <script>
 const LANG_COLORS = {
     "Python":"#3572A5","JavaScript":"#f1e05a","TypeScript":"#3178c6",
@@ -694,7 +758,25 @@ const T = {
         statRepos: "Total Repositories",
         statAvgStars: "Average Stars",
         statTopLang: "Top Language",
-        noData: "No Data"
+        noData: "No Data",
+        limitLabel: "Limit:",
+        limitOptions: { 10: "10 Repos", 25: "25 Repos", 50: "50 Repos", 100: "100 Repos", 250: "250 Repos", 500: "500 Repos" },
+        aiBubbleTitle: "Gemini AI Agent",
+        aiOnlineStatus: "Online • Ready to assist",
+        aiPlaceholder: "Ask anything about trending repos...",
+        aiSend: "Send",
+        aiGlobalContext: "Global context: analyzing current page",
+        aiRepoContext: "Context: analyzing {name}",
+        aiClearContext: "Reset to Global",
+        aiHelpGreeting: "Hello! I am your Gemini AI Coding Agent. Ask me questions about the trending repositories currently loaded on this page, or click 🤖 AI on any repository card to summarize it!",
+        apiKeyTitle: "Gemini API Key Settings",
+        apiKeyDesc: "Provide your Google Gemini API key to enable AI features. It is stored locally in your browser.",
+        apiKeyPlaceholder: "Enter Gemini API Key...",
+        apiKeySave: "Save Key",
+        apiKeyCancel: "Cancel",
+        apiKeySavedAlert: "API Key saved successfully!",
+        aiButtonLabel: "AI",
+        aiLoading: "Thinking...",
     },
     ru: {
         title: "🔥 Тренды GitHub",
@@ -727,7 +809,25 @@ const T = {
         statRepos: "Всего репозиториев",
         statAvgStars: "Среднее число звезд",
         statTopLang: "Популярный язык",
-        noData: "Нет данных"
+        noData: "Нет данных",
+        limitLabel: "Лимит:",
+        limitOptions: { 10: "10 репо", 25: "25 репо", 50: "50 репо", 100: "100 репо", 250: "250 репо", 500: "500 репо" },
+        aiBubbleTitle: "ИИ Агент Gemini",
+        aiOnlineStatus: "В сети • Готов помочь",
+        aiPlaceholder: "Спросите меня о трендах...",
+        aiSend: "Отправить",
+        aiGlobalContext: "Глобальный контекст: анализ страницы",
+        aiRepoContext: "Контекст: анализ {name}",
+        aiClearContext: "Сбросить к глобальному",
+        aiHelpGreeting: "Привет! Я твой ИИ-помощник Gemini. Задавай мне вопросы о текущих трендовых репозиториях на странице или нажми 🤖 ИИ на карточке любого репозитория, чтобы получить его краткую сводку!",
+        apiKeyTitle: "Настройки ключа Gemini API",
+        apiKeyDesc: "Введите ваш Google Gemini API ключ для работы ИИ-агента. Он сохраняется локально в вашем браузере.",
+        apiKeyPlaceholder: "Введите Gemini API Ключ...",
+        apiKeySave: "Сохранить",
+        apiKeyCancel: "Отмена",
+        apiKeySavedAlert: "API Ключ успешно сохранен!",
+        aiButtonLabel: "ИИ",
+        aiLoading: "Думаю...",
     }
 };
 
@@ -738,6 +838,8 @@ let lastFetchedSource = "api";
 let analyticsVisible = false;
 let langChartInstance = null;
 let starsChartInstance = null;
+let aiHistory = [];
+let aiSelectedRepo = null;
 
 const $=id=>document.getElementById(id);
 
@@ -783,6 +885,15 @@ function applyLanguage() {
     srcSelect.options[0].text = t.source.api;
     srcSelect.options[1].text = t.source.trending;
     
+    // Update limit options
+    const limitSelect = $('limitSelect');
+    if (limitSelect) {
+        for (let i = 0; i < limitSelect.options.length; i++) {
+            const val = limitSelect.options[i].value;
+            limitSelect.options[i].text = t.limitOptions[val] || (val + " Repos");
+        }
+    }
+    
     // Update other elements
     $('minStarsLabelText').textContent = t.minStars;
     $('btnRefresh').textContent = t.refresh;
@@ -802,6 +913,20 @@ function applyLanguage() {
     $('statAvgStarsLabel').textContent = t.statAvgStars;
     $('statTopLangLabel').textContent = t.statTopLang;
     
+    // Update API Key settings modal
+    $('apiKeyModalTitleText').textContent = t.apiKeyTitle;
+    $('apiKeyModalDescText').textContent = t.apiKeyDesc;
+    $('apiKeyInput').placeholder = t.apiKeyPlaceholder;
+    $('apiKeySaveBtnText').textContent = t.apiKeySave;
+    $('apiKeyCancelBtnText').textContent = t.apiKeyCancel;
+    
+    // Update AI pane text
+    $('aiAgentTitleText').textContent = t.aiBubbleTitle;
+    $('aiAgentStatusText').textContent = t.aiOnlineStatus;
+    $('aiChatInput').placeholder = t.aiPlaceholder;
+    $('aiChatSendBtn').textContent = t.aiSend;
+    $('aiContextClearBtn').textContent = t.aiClearContext;
+    
     // Toggle active state on switcher buttons
     document.querySelectorAll('.lang-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.lang === lang);
@@ -811,6 +936,9 @@ function applyLanguage() {
     if (lastFetchedRepos) {
         renderRepos(lastFetchedRepos, lastFetchedSource);
     }
+    
+    // Update AI context text dynamically
+    updateAiContextUI();
 }
 
 function toggleAnalytics() {
@@ -946,9 +1074,11 @@ async function fetchRepos(){
     const c=$('content');
     const t = T[currentLang];
     c.innerHTML=`<div class="loading"><div class="spinner"></div><p style="color:var(--text-dim)">${t.loading}</p></div>`;
+    
+    const limitVal = $('limitSelect') ? $('limitSelect').value : '25';
     const p=new URLSearchParams({
         duration:$('durationSelect').value,
-        limit:'30',
+        limit:limitVal,
         sort:$('sortSelect').value,
         source:$('sourceSelect').value,
     });
@@ -1031,7 +1161,10 @@ function card(r,i){
         <p class="card-desc">${esc(d)}</p>
         <div class="card-footer-row">
             ${builtByAvatars}
-            <button class="btn-tweets" onclick="openTweets('${esc(n)}')">💬 Tweets</button>
+            <div style="display:flex; gap: 6px;">
+                <button class="btn-tweets" style="background:rgba(139,92,246,0.1); border:1px solid rgba(139,92,246,0.2); color:#c084fc;" onclick="triggerRepoAi(event, ${i})">🤖 ${T[currentLang].aiButtonLabel}</button>
+                <button class="btn-tweets" onclick="openTweets('${esc(n)}')">💬 Tweets</button>
+            </div>
         </div>
         <div class="card-meta" style="margin-top: 14px;">
             <span class="meta-item meta-stars">⭐ ${s}</span>
@@ -1082,10 +1215,211 @@ function closeModal() {
     $('tweetsModal').classList.remove('open');
 }
 
+// AI Agent JS Logic
+function toggleAiChat() {
+    const pane = $('aiChatPane');
+    const isVisible = pane.style.display === 'flex';
+    pane.style.display = isVisible ? 'none' : 'flex';
+    
+    if (!isVisible && $('aiChatMessages').children.length === 0) {
+        resetAiChat();
+    }
+}
+
+function resetAiChat() {
+    aiHistory = [];
+    const t = T[currentLang];
+    $('aiChatMessages').innerHTML = `
+        <div style="background: rgba(124, 58, 237, 0.1); border: 1px solid rgba(124, 58, 237, 0.2); padding: 12px; border-radius: 12px; line-height: 1.4; color: var(--text);">
+            ${t.aiHelpGreeting}
+        </div>
+    `;
+    updateAiContextUI();
+}
+
+function updateAiContextUI() {
+    const clearBtn = $('aiContextClearBtn');
+    const labelText = $('aiContextLabel');
+    const t = T[currentLang];
+    
+    if (aiSelectedRepo) {
+        labelText.textContent = t.aiRepoContext.replace('{name}', aiSelectedRepo.full_name || aiSelectedRepo.name);
+        clearBtn.style.display = 'inline-block';
+    } else {
+        labelText.textContent = t.aiContextLabel || t.aiGlobalContext;
+        // Wait, if labelText is still empty let's make sure it shows the global context text:
+        labelText.textContent = t.aiGlobalContext;
+        clearBtn.style.display = 'none';
+    }
+}
+
+function clearAiContext() {
+    aiSelectedRepo = null;
+    updateAiContextUI();
+}
+
+function openApiKeyModal() {
+    $('apiKeyModal').classList.add('open');
+    $('apiKeyInput').value = localStorage.getItem("gemini_api_key") || "";
+}
+
+function closeApiKeyModal() {
+    $('apiKeyModal').classList.remove('open');
+}
+
+function saveApiKey() {
+    const key = $('apiKeyInput').value.trim();
+    localStorage.setItem("gemini_api_key", key);
+    closeApiKeyModal();
+    alert(T[currentLang].apiKeySavedAlert);
+    if (key && aiHistory.length === 0) {
+        resetAiChat();
+    }
+}
+
+function triggerRepoAi(event, index) {
+    event.stopPropagation();
+    if (!lastFetchedRepos || !lastFetchedRepos[index]) return;
+    
+    aiSelectedRepo = lastFetchedRepos[index];
+    const pane = $('aiChatPane');
+    pane.style.display = 'flex'; // Ensure it is open
+    
+    updateAiContextUI();
+    
+    // Auto-generate query to summarize
+    const repoName = aiSelectedRepo.full_name || aiSelectedRepo.name;
+    const initialQuery = currentLang === 'ru' 
+        ? `Сделай краткий обзор репозитория ${repoName}`
+        : `Provide a quick summary of repository ${repoName}`;
+    
+    appendAiMessage('user', initialQuery);
+    executeAiQuery(initialQuery);
+}
+
+function appendAiMessage(role, text) {
+    const container = $('aiChatMessages');
+    const isUser = role === 'user';
+    const messageBg = isUser ? 'rgba(249, 115, 22, 0.15)' : 'rgba(255, 255, 255, 0.05)';
+    const borderCol = isUser ? 'rgba(249, 115, 22, 0.3)' : 'var(--border)';
+    const align = isUser ? 'align-self: flex-end; max-width: 85%;' : 'align-self: flex-start; max-width: 85%;';
+    
+    const div = document.createElement('div');
+    div.style = `${align} background: ${messageBg}; border: 1px solid ${borderCol}; padding: 10px 14px; border-radius: 12px; color: var(--text); line-height: 1.4; word-break: break-word; text-align: left; margin-bottom: 6px;`;
+    div.innerHTML = renderMarkdown(text);
+    
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+}
+
+function renderMarkdown(text) {
+    // Simple markdown renderer
+    let html = esc(text);
+    
+    // Replace code blocks: ```code```
+    html = html.replace(/```([\s\S]*?)```/g, '<pre style="background:rgba(0,0,0,0.4); padding:10px; border-radius:8px; overflow-x:auto; font-family:monospace; font-size:0.8rem; margin:8px 0; border:1px solid rgba(255,255,255,0.05); white-space:pre-wrap;"><code>$1</code></pre>');
+    
+    // Replace inline code: `code`
+    html = html.replace(/`([^`]+)`/g, '<code style="background:rgba(255,255,255,0.1); padding:2px 4px; border-radius:4px; font-family:monospace; font-size:0.85rem;">$1</code>');
+    
+    // Replace bold: **text**
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    
+    // Replace bullet points starting with * or - or • at the beginning of a line
+    html = html.split('\n').map(line => {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('* ') || trimmed.startsWith('- ') || trimmed.startsWith('• ')) {
+            return `<li style="margin-left: 15px; list-style-type: disc;">${trimmed.substring(2)}</li>`;
+        }
+        return line;
+    }).join('\n');
+    
+    // Replace newlines with <br>
+    html = html.replace(/\n/g, '<br>');
+    return html;
+}
+
+async function sendAiChatMessage() {
+    const input = $('aiChatInput');
+    const query = input.value.trim();
+    if (!query) return;
+    
+    input.value = '';
+    appendAiMessage('user', query);
+    aiHistory.push({ role: 'user', text: query });
+    
+    await executeAiQuery(query);
+}
+
+async function executeAiQuery(query) {
+    const container = $('aiChatMessages');
+    const t = T[currentLang];
+    
+    const typingDiv = document.createElement('div');
+    typingDiv.id = 'aiTypingIndicator';
+    typingDiv.style = 'align-self: flex-start; max-width: 85%; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); padding: 10px 14px; border-radius: 12px; color: var(--text-dim); display: flex; align-items: center; gap: 8px;';
+    typingDiv.innerHTML = `<div class="spinner" style="width:14px; height:14px; border-width:2px; margin:0;"></div> <span>${t.aiLoading}</span>`;
+    container.appendChild(typingDiv);
+    container.scrollTop = container.scrollHeight;
+    
+    const key = localStorage.getItem("gemini_api_key") || "";
+    
+    const payload = {
+        query: query,
+        history: aiHistory.slice(0, -1)
+    };
+    
+    if (aiSelectedRepo) {
+        payload.name = aiSelectedRepo.full_name || aiSelectedRepo.name;
+        payload.description = aiSelectedRepo.description;
+        payload.language = aiSelectedRepo.language;
+    } else if (lastFetchedRepos) {
+        payload.repos = lastFetchedRepos;
+    }
+    
+    try {
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        if (key) {
+            headers['X-Gemini-Key'] = key;
+        }
+        
+        const r = await fetch('/api/ai/summarize', {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(payload)
+        });
+        
+        const d = await r.json();
+        
+        const indicator = $('aiTypingIndicator');
+        if (indicator) indicator.remove();
+        
+        if (d.error) {
+            appendAiMessage('model', `❌ Error: ${d.error}`);
+            if (d.error.includes("Missing GEMINI_API_KEY")) {
+                openApiKeyModal();
+            }
+        } else if (d.summary) {
+            appendAiMessage('model', d.summary);
+            aiHistory.push({ role: 'model', text: d.summary });
+        }
+    } catch (e) {
+        const indicator = $('aiTypingIndicator');
+        if (indicator) indicator.remove();
+        appendAiMessage('model', `❌ Failed: ${e.message}`);
+    }
+}
+
 window.addEventListener('click', e => {
-    const modal = $('tweetsModal');
-    if (e.target === modal) {
+    const tweetsModal = $('tweetsModal');
+    if (e.target === tweetsModal) {
         closeModal();
+    }
+    const apiKeyModal = $('apiKeyModal');
+    if (e.target === apiKeyModal) {
+        closeApiKeyModal();
     }
 });
 

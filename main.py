@@ -194,6 +194,7 @@ def _fetch_repos(args: argparse.Namespace) -> list[dict]:
         sort=args.sort,
         min_stars=args.min_stars,
         token=args.token,
+        query_keyword=args.query,
     )
 
     if not args.no_cache:

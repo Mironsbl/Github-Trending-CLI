@@ -22,6 +22,7 @@ def fetch_trending_repos(
     sort: str = "stars",
     min_stars: int | None = None,
     token: str | None = None,
+    query_keyword: str | None = None,
 ) -> list[dict[str, Any]]:
     """Fetch trending repositories from the GitHub Search API.
 
@@ -33,6 +34,7 @@ def fetch_trending_repos(
         sort: Sort field — 'stars', 'forks', or 'updated'.
         min_stars: Minimum star count filter.
         token: Optional GitHub personal-access token.
+        query_keyword: Optional keyword query.
 
     Returns:
         A list of repository dicts as returned by the GitHub API.
@@ -43,6 +45,8 @@ def fetch_trending_repos(
     since_date = utils.get_since_date(duration)
     query = f"created:>{since_date}"
 
+    if query_keyword:
+        query += f" {query_keyword}"
     if language:
         query += f" language:{language}"
     if topic:
@@ -58,51 +62,80 @@ def fetch_trending_repos(
         headers["Authorization"] = f"Bearer {resolved_token}"
 
     url = "https://api.github.com/search/repositories"
-    params: dict[str, str | int] = {
-        "q": query,
-        "sort": sort,
-        "order": "desc",
-        "per_page": limit,
-    }
-
-    try:
-        response = requests.get(url, params=params, headers=headers, timeout=15)
-
-        if response.status_code == 403:
+    repos: list[dict[str, Any]] = []
+    page = 1
+    
+    # Calculate how many pages we need, fetching up to 100 per page
+    import math
+    per_page = min(limit, 100)
+    pages_needed = math.ceil(limit / per_page) if per_page > 0 else 1
+    
+    while len(repos) < limit and page <= pages_needed:
+        current_limit = min(limit - len(repos), 100)
+        params: dict[str, str | int] = {
+            "q": query,
+            "sort": sort,
+            "order": "desc",
+            "per_page": current_limit,
+            "page": page,
+        }
+    
+        try:
+            response = requests.get(url, params=params, headers=headers, timeout=15)
+    
+            if response.status_code == 403:
+                if repos:
+                    # Return partial results if we hit a rate limit midway
+                    break
+                raise GitHubAPIError(
+                    "GitHub API rate limit exceeded. "
+                    "Wait a few minutes or supply a token with --token / GITHUB_TOKEN."
+                )
+    
+            if response.status_code == 401:
+                raise GitHubAPIError(
+                    "GitHub API authentication failed. Check your token."
+                )
+    
+            if response.status_code == 422:
+                raise GitHubAPIError(
+                    "Invalid query parameters. Check --topic and --language values."
+                )
+    
+            if response.status_code != 200:
+                if repos:
+                    break
+                raise GitHubAPIError(
+                    f"GitHub API returned status {response.status_code}: "
+                    f"{response.text[:200]}"
+                )
+    
+            data = response.json()
+            items = data.get("items", [])
+            if not items:
+                break
+            
+            repos.extend(items)
+            page += 1
+    
+        except requests.exceptions.ConnectionError:
+            if repos:
+                return repos
             raise GitHubAPIError(
-                "GitHub API rate limit exceeded. "
-                "Wait a few minutes or supply a token with --token / GITHUB_TOKEN."
+                "Could not connect to GitHub. Check your internet connection."
             )
-
-        if response.status_code == 401:
+        except requests.exceptions.Timeout:
+            if repos:
+                return repos
             raise GitHubAPIError(
-                "GitHub API authentication failed. Check your token."
+                "GitHub API request timed out. Try again later."
             )
-
-        if response.status_code == 422:
-            raise GitHubAPIError(
-                "Invalid query parameters. Check --topic and --language values."
-            )
-
-        if response.status_code != 200:
-            raise GitHubAPIError(
-                f"GitHub API returned status {response.status_code}: "
-                f"{response.text[:200]}"
-            )
-
-        data = response.json()
-        return data.get("items", [])
-
-    except requests.exceptions.ConnectionError:
-        raise GitHubAPIError(
-            "Could not connect to GitHub. Check your internet connection."
-        )
-    except requests.exceptions.Timeout:
-        raise GitHubAPIError(
-            "GitHub API request timed out. Try again later."
-        )
-    except requests.exceptions.RequestException as exc:
-        raise GitHubAPIError(f"Unexpected network error: {exc}")
+        except requests.exceptions.RequestException as exc:
+            if repos:
+                return repos
+            raise GitHubAPIError(f"Unexpected network error: {exc}")
+    
+    return repos
 
 
 def get_rate_limit(token: str | None = None) -> dict[str, Any]:

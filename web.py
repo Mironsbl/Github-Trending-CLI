@@ -78,6 +78,7 @@ def api_trending():
                 repos = github_api.fetch_trending_repos(
                     duration=duration, limit=limit, language=language,
                     topic=topic, sort=sort, min_stars=min_stars, token=token,
+                    query_keyword=query,
                 )
                 for r in repos:
                     r["source"] = "api"
@@ -93,6 +94,7 @@ def api_trending():
                 sort=sort,
                 min_stars=min_stars,
                 token=token,
+                query_keyword=query,
             )
             for r in repos:
                 r["source"] = "api"
@@ -137,6 +139,112 @@ def api_tweets():
         utils.write_cache(tweets, "tweets", query, 5, None)
 
     return jsonify({"tweets": tweets, "cached": False})
+
+
+@app.route("/api/ai/summarize", methods=["POST"])
+def api_ai_summarize():
+    """Use Gemini API to summarize or answer questions about repositories (supports history and global search context)."""
+    import requests
+    data = request.json or {}
+    repo_name = data.get("name")
+    description = data.get("description")
+    language = data.get("language")
+    user_query = data.get("query")
+    history = data.get("history") or []
+    repos = data.get("repos") or []
+
+    api_key = os.environ.get("GEMINI_API_KEY") or request.headers.get("X-Gemini-Key")
+    if not api_key:
+        return jsonify({"error": "Missing GEMINI_API_KEY. Set it in the environment or provide it in settings."}), 400
+
+    # 1. Base instruction / context message to set the behavior
+    if repo_name:
+        context_text = (
+            f"You are an AI coding assistant. The user is asking about the GitHub repository '{repo_name}'.\n"
+            f"Description: {description}\n"
+            f"Primary Language: {language}\n\n"
+            f"Answer the user's questions or request concisely, accurately, and professionally in Russian. "
+            f"If they ask for code, write clean code snippets using Markdown syntax. Avoid unnecessary chit-chat."
+        )
+    elif repos:
+        # Construct context with currently loaded repositories (up to 30 to stay within prompt token bounds)
+        repos_str = "\n".join([
+            f"- {r.get('full_name') or r.get('name')} ({r.get('language')}): {r.get('description')} [⭐ {r.get('stargazers_count') or r.get('stars', 0)}]"
+            for r in repos[:30]
+        ])
+        context_text = (
+            f"You are an AI assistant helping developers browse trending GitHub repositories.\n"
+            f"Here is the list of currently loaded repositories on the page:\n{repos_str}\n\n"
+            f"Answer the user's questions or request about these repositories. Keep your answers concise, "
+            f"professional, and in Russian. Use markdown formatting and lists where appropriate."
+        )
+    else:
+        context_text = (
+            "You are an AI coding assistant. Answer the user's questions about software development, "
+            "GitHub, or coding. Keep answers concise, professional, and in Russian."
+        )
+
+    # 2. Structure contents for Gemini API (contents schema expects alternative user/model roles)
+    contents = []
+    
+    # We add context as a user message and a model acknowledgment to seed the persona
+    contents.append({
+        "role": "user",
+        "parts": [{"text": context_text}]
+    })
+    contents.append({
+        "role": "model",
+        "parts": [{"text": "Понял! Я готов проанализировать репозитории и ответить на любые вопросы на русском языке."}]
+    })
+
+    # Add conversation history
+    for msg in history:
+        # Map roles correctly to Gemini API ("user" and "model")
+        role = "user" if msg.get("role") == "user" else "model"
+        contents.append({
+            "role": role,
+            "parts": [{"text": msg.get("text", "")}]
+        })
+
+    # Add the current user query (if it's not already in history)
+    if user_query:
+        contents.append({
+            "role": "user",
+            "parts": [{"text": user_query}]
+        })
+    else:
+        # If no query is provided, we default to requesting a summary of the selected repo
+        summary_request = (
+            "Summarize this repository. Provide a concise summary in Russian (3-4 bullet points) explaining:\n"
+            "1. What problem it solves.\n"
+            "2. Who it is for.\n"
+            "3. A quick installation/run command (e.g. pip install or npm install).\n"
+            "Use emoji. Keep it brief and visually clean."
+        )
+        contents.append({
+            "role": "user",
+            "parts": [{"text": summary_request}]
+        })
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+    headers = {"Content-Type": "application/json"}
+    payload = {
+        "contents": contents
+    }
+
+    try:
+        resp = requests.post(url, json=payload, headers=headers, timeout=15)
+        if resp.status_code == 200:
+            result = resp.json()
+            try:
+                text = result["candidates"][0]["content"]["parts"][0]["text"]
+                return jsonify({"summary": text})
+            except (KeyError, IndexError):
+                return jsonify({"error": "Failed to parse Gemini API response. Check model availability."}), 502
+        else:
+            return jsonify({"error": f"Gemini API returned status {resp.status_code}: {resp.text[:200]}"}), 502
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 
