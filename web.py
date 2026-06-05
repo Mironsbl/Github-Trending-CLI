@@ -8,6 +8,7 @@ from flask import Flask, jsonify, request, render_template
 
 import github_api
 import scraper
+import twitter
 import utils
 
 # Configure production-grade logging
@@ -113,6 +114,30 @@ def api_trending():
     except github_api.GitHubAPIError as e:
         logger.error("Error fetching trending repositories: %s", e)
         return jsonify({"error": str(e), "repos": [], "count": 0, "cached": False}), 500
+
+
+@app.route("/api/tweets")
+def api_tweets():
+    """Search tweets about a repository."""
+    query = request.args.get("q")
+    if not query:
+        return jsonify({"error": "Missing query parameter 'q'", "tweets": []}), 400
+
+    # Cache tweet search results so we don't spam Nitter instances
+    cached = utils.read_cache("tweets", query, 5, None, ttl=1800)  # cache for 30 minutes
+    if cached is not None:
+        logger.info("Cache hit for tweets: query=%s", query)
+        return jsonify({"tweets": cached, "cached": True})
+
+    logger.info("Cache miss for tweets: query=%s. Fetching from Nitter.", query)
+    tweets = twitter.search_twitter_mentions(query)
+
+    # Save to cache
+    if tweets:
+        utils.write_cache(tweets, "tweets", query, 5, None)
+
+    return jsonify({"tweets": tweets, "cached": False})
+
 
 
 @app.route("/api/search")

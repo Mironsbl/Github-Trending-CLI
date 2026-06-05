@@ -219,6 +219,120 @@
             margin-left: 8px;
         }
 
+        .card-footer-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: auto;
+            padding-top: 14px;
+        }
+        .built-by {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+        .avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid #161b22;
+            margin-left: -8px;
+            transition: transform 0.2s ease, z-index 0.2s;
+            cursor: pointer;
+        }
+        .avatar:first-child { margin-left: 0; }
+        .avatar:hover {
+            transform: scale(1.2) translateY(-2px);
+            z-index: 10;
+        }
+        .btn-tweets {
+            background: rgba(96, 165, 250, 0.1);
+            border: 1px solid rgba(96, 165, 250, 0.2);
+            color: var(--blue);
+            padding: 5px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.78rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-tweets:hover {
+            background: var(--blue);
+            color: #0d1117;
+            border-color: transparent;
+            box-shadow: 0 0 10px rgba(96, 165, 250, 0.3);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(13, 17, 23, 0.7);
+            backdrop-filter: blur(8px);
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+        .modal-content {
+            background: rgba(22, 27, 34, 0.95);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 30px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            position: relative;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+        .modal.open { display: flex; }
+        .modal.open .modal-content { transform: scale(1); }
+        .close-modal {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 28px;
+            color: var(--text-dim);
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .close-modal:hover { color: var(--text); }
+        
+        .tweet-card {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: border-color 0.2s;
+        }
+        .tweet-card:hover { border-color: var(--accent2); }
+        .tweet-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+        }
+        .tweet-author {
+            color: var(--blue);
+            font-weight: 700;
+            text-decoration: none;
+        }
+        .tweet-date { color: var(--text-dim); }
+        .tweet-text { font-size: 0.92rem; color: var(--text); line-height: 1.4; word-break: break-word; text-align: left; }
+        .tweet-badge-mock {
+            font-size: 0.7rem;
+            background: rgba(96, 165, 250, 0.15);
+            color: var(--blue);
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
         .card-desc {
             color: var(--text-dim);
             font-size: 0.88rem;
@@ -387,6 +501,21 @@
     Built with 🔥 GitHub Trending CLI
 </div>
 
+<!-- Twitter/X Mentions Modal -->
+<div id="tweetsModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeModal()">&times;</span>
+        <h2 id="modalTitleText" style="font-size:1.5rem; font-weight:800; margin-bottom:5px;">💬 Twitter Mentions</h2>
+        <p id="modalSubtitle" style="color:var(--blue); font-weight:700; margin-bottom:20px; font-size:0.95rem;"></p>
+        <div id="modalTweets" style="max-height: 350px; overflow-y: auto; padding-right: 5px; margin-bottom: 20px;">
+            <div class="loading"><div class="spinner"></div></div>
+        </div>
+        <div style="display:flex; justify-content:flex-end;">
+            <a id="modalTwitterLink" href="#" target="_blank" class="btn-refresh" style="display:inline-block; text-decoration:none; text-align:center; font-size:0.85rem; padding: 10px 18px;">Open in X/Twitter</a>
+        </div>
+    </div>
+</div>
+
 <script>
 const LANG_COLORS = {
     "Python":"#3572A5","JavaScript":"#f1e05a","TypeScript":"#3178c6",
@@ -415,7 +544,12 @@ const T = {
         tryAgain: "Try Again",
         footer: 'Powered by <a href="https://docs.github.com/en/rest" target="_blank">GitHub API</a> • Built with 🔥 GitHub Trending CLI',
         noDesc: "No description",
-        starsLabel: { day: "stars today", week: "stars this week", month: "stars this month", year: "stars this year" }
+        starsLabel: { day: "stars today", week: "stars this week", month: "stars this month", year: "stars this year" },
+        tweetsTitle: "Twitter/X Mentions",
+        openTwitter: "Open in X/Twitter",
+        simulated: "Simulated",
+        noTweets: "No tweets found",
+        errorTweets: "Error loading tweets"
     },
     ru: {
         title: "🔥 Тренды GitHub",
@@ -436,7 +570,12 @@ const T = {
         tryAgain: "Повторить",
         footer: 'Работает на <a href="https://docs.github.com/en/rest" target="_blank">GitHub API</a> • Создано с помощью 🔥 GitHub Trending CLI',
         noDesc: "Нет описания",
-        starsLabel: { day: "звезд сегодня", week: "звезд на этой неделе", month: "звезд в этом месяце", year: "звезд в этом году" }
+        starsLabel: { day: "звезд сегодня", week: "звезд на этой неделе", month: "звезд в этом месяце", year: "звезд в этом году" },
+        tweetsTitle: "Упоминания в Twitter/X",
+        openTwitter: "Открыть в X/Twitter",
+        simulated: "Смоделировано",
+        noTweets: "Упоминаний не найдено",
+        errorTweets: "Ошибка при загрузке твитов"
     }
 };
 
@@ -495,6 +634,10 @@ function applyLanguage() {
     $('repositoriesFoundText').textContent = t.found;
     $('autoRefreshLabelText').textContent = t.autoRefresh;
     $('footerText').innerHTML = t.footer;
+    
+    // Modal static elements
+    $('modalTitleText').textContent = t.tweetsTitle;
+    $('modalTwitterLink').textContent = t.openTwitter;
     
     // Toggle active state on switcher buttons
     document.querySelectorAll('.lang-btn').forEach(btn => {
@@ -579,13 +722,75 @@ function card(r,i){
         badge = `<span class="badge-hot">🔥 ${sp.toLocaleString()} ${localizedLabel}</span>`;
     }
     
+    const bb=r.built_by||[];
+    const builtByAvatars=bb.length>0?
+        `<div class="built-by">
+            ${bb.map(user=>`<img class="avatar" src="https://github.com/${user}.png?size=40" title="${esc(user)}" alt="${esc(user)}">`).join('')}
+         </div>`:'';
+
     const lang=l?`<span class="meta-item meta-lang"><span class="lang-dot" style="background:${lc}"></span>${esc(l)}</span>`:'';
     return `<div class="card" style="animation-delay:${i*0.05}s">
         <div class="card-header"><a class="card-name" href="${u}" target="_blank">${esc(n)}</a>${badge}</div>
         <p class="card-desc">${esc(d)}</p>
-        <div class="card-meta"><span class="meta-item meta-stars">⭐ ${s}</span><span class="meta-item meta-forks">🍴 ${f}</span>${lang}</div>
+        <div class="card-footer-row">
+            ${builtByAvatars}
+            <button class="btn-tweets" onclick="openTweets('${esc(n)}')">💬 Tweets</button>
+        </div>
+        <div class="card-meta" style="margin-top: 14px;">
+            <span class="meta-item meta-stars">⭐ ${s}</span>
+            <span class="meta-item meta-forks">🍴 ${f}</span>
+            ${lang}
+        </div>
     </div>`;
 }
+
+async function openTweets(repoName) {
+    const modal = $('tweetsModal');
+    const title = $('modalSubtitle');
+    const container = $('modalTweets');
+    
+    title.textContent = repoName;
+    modal.classList.add('open');
+    container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+    
+    $('modalTwitterLink').href = `https://x.com/search?q=${encodeURIComponent(repoName)}`;
+
+    try {
+        const r = await fetch(`/api/tweets?q=${encodeURIComponent(repoName)}`);
+        const d = await r.json();
+        
+        if (d.tweets && d.tweets.length > 0) {
+            container.innerHTML = d.tweets.map(t => {
+                const badge = t.is_mock === "true" ? `<span class="tweet-badge-mock">${T[currentLang].simulated}</span>` : '';
+                return `<div class="tweet-card">
+                    <div class="tweet-header">
+                        <a class="tweet-author" href="${t.url}" target="_blank">${esc(t.author)}</a>
+                        <div style="display:flex; gap: 8px; align-items:center;">
+                            ${badge}
+                            <span class="tweet-date">${esc(t.date)}</span>
+                        </div>
+                    </div>
+                    <p class="tweet-text">${esc(t.text)}</p>
+                </div>`;
+            }).join('');
+        } else {
+            container.innerHTML = `<p style="text-align:center;color:var(--text-dim);padding:20px;">${T[currentLang].noTweets}</p>`;
+        }
+    } catch(e) {
+        container.innerHTML = `<p style="text-align:center;color:#f87171;padding:20px;">${T[currentLang].errorTweets}</p>`;
+    }
+}
+
+function closeModal() {
+    $('tweetsModal').classList.remove('open');
+}
+
+window.addEventListener('click', e => {
+    const modal = $('tweetsModal');
+    if (e.target === modal) {
+        closeModal();
+    }
+});
 
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
 
