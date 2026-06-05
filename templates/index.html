@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔥 GitHub Trending</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #0d1117;
+            --bg-card: rgba(22, 27, 34, 0.8);
+            --bg-input: rgba(22, 27, 34, 0.6);
+            --border: rgba(48, 54, 61, 0.6);
+            --text: #e6edf3;
+            --text-dim: #8b949e;
+            --accent: #f97316;
+            --accent2: #ec4899;
+            --gold: #fbbf24;
+            --blue: #60a5fa;
+            --green: #34d399;
+            --gradient: linear-gradient(135deg, #f97316, #ec4899);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+
+        .header {
+            text-align: center;
+            padding: 48px 20px 32px;
+            position: relative;
+        }
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 50%;
+            transform: translateX(-50%);
+            width: 600px; height: 300px;
+            background: radial-gradient(ellipse, rgba(249,115,22,0.12) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .header h1 {
+            font-size: 2.8rem;
+            font-weight: 800;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+        .header p { color: var(--text-dim); font-size: 1.05rem; }
+
+        .filters {
+            max-width: 1200px;
+            margin: 0 auto 32px;
+            padding: 0 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+        .search-box {
+            flex: 1;
+            min-width: 220px;
+            position: relative;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 12px 16px 12px 44px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text);
+            font-size: 0.95rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.3s;
+            backdrop-filter: blur(10px);
+        }
+        .search-box input:focus { border-color: var(--accent); }
+        .search-box::before {
+            content: '🔍';
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.1rem;
+        }
+        .filter-select {
+            padding: 12px 16px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text);
+            font-size: 0.9rem;
+            font-family: inherit;
+            outline: none;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: border-color 0.3s;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b949e' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 32px;
+        }
+        .filter-select:focus { border-color: var(--accent); }
+        .filter-select option { background: #161b22; color: var(--text); }
+
+        .stars-filter {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-dim);
+            font-size: 0.85rem;
+        }
+        .stars-filter input[type="range"] { width: 100px; accent-color: var(--gold); }
+
+        .btn-refresh {
+            padding: 12px 20px;
+            background: var(--gradient);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            font-family: inherit;
+            transition: transform 0.2s, box-shadow 0.3s;
+        }
+        .btn-refresh:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(249, 115, 22, 0.3);
+        }
+        .btn-refresh:active { transform: translateY(0); }
+
+        .status-bar {
+            max-width: 1200px;
+            margin: 0 auto 20px;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text-dim);
+            font-size: 0.85rem;
+        }
+        .result-count { font-weight: 600; color: var(--text); }
+        .auto-refresh {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+        .auto-refresh input[type="checkbox"] { accent-color: var(--accent); }
+
+        .grid {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px 60px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s;
+            animation: fadeUp 0.5s ease both;
+            display: flex;
+            flex-direction: column;
+        }
+        .card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 8px 32px rgba(249, 115, 22, 0.15);
+            border-color: rgba(249, 115, 22, 0.3);
+        }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+        .card-name {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--blue);
+            text-decoration: none;
+            transition: color 0.2s;
+            word-break: break-word;
+        }
+        .card-name:hover { color: #93c5fd; }
+
+        .badge-hot {
+            background: rgba(251, 191, 36, 0.15);
+            color: var(--gold);
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 20px;
+            white-space: nowrap;
+            flex-shrink: 0;
+            margin-left: 8px;
+        }
+
+        .card-desc {
+            color: var(--text-dim);
+            font-size: 0.88rem;
+            margin-bottom: 16px;
+            flex: 1;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .card-meta {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            font-size: 0.82rem;
+        }
+        .meta-item { display: flex; align-items: center; gap: 5px; }
+        .meta-stars { color: var(--gold); font-weight: 600; }
+        .meta-forks { color: var(--blue); }
+        .lang-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .meta-lang { color: var(--green); }
+
+        .loading { text-align: center; padding: 80px 20px; }
+        .spinner {
+            width: 48px; height: 48px;
+            border: 4px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .error-box { text-align: center; padding: 60px 20px; color: var(--text-dim); }
+        .error-box h3 { color: #f87171; margin-bottom: 8px; }
+        .btn-retry {
+            margin-top: 16px;
+            padding: 10px 24px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            cursor: pointer;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+        .btn-retry:hover { border-color: var(--accent); }
+
+        .lang-switcher {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            display: flex;
+            gap: 6px;
+            z-index: 10;
+        }
+        .lang-btn {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.78rem;
+            font-weight: 700;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+        }
+        .lang-btn:hover {
+            border-color: var(--accent);
+            color: var(--text);
+        }
+        .lang-btn.active {
+            background: var(--gradient);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 0 12px rgba(249, 115, 22, 0.25);
+        }
+
+        .footer {
+            text-align: center;
+            padding: 32px 20px;
+            color: var(--text-dim);
+            font-size: 0.82rem;
+            border-top: 1px solid var(--border);
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .footer a { color: var(--blue); text-decoration: none; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="lang-switcher">
+        <button class="lang-btn active" data-lang="en" onclick="changeLang('en')">EN</button>
+        <button class="lang-btn" data-lang="ru" onclick="changeLang('ru')">RU</button>
+    </div>
+    <h1 id="titleText">🔥 GitHub Trending</h1>
+    <p id="subtitleText">Discover the hottest repositories right now</p>
+</div>
+
+<div class="filters">
+    <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Search repositories...">
+    </div>
+    <select class="filter-select" id="durationSelect">
+        <option value="day">Today</option>
+        <option value="week" selected>This Week</option>
+        <option value="month">This Month</option>
+        <option value="year">This Year</option>
+    </select>
+    <select class="filter-select" id="languageSelect">
+        <option value="">All Languages</option>
+        <option value="python">Python</option>
+        <option value="javascript">JavaScript</option>
+        <option value="typescript">TypeScript</option>
+        <option value="rust">Rust</option>
+        <option value="go">Go</option>
+        <option value="java">Java</option>
+        <option value="c++">C++</option>
+        <option value="swift">Swift</option>
+        <option value="kotlin">Kotlin</option>
+        <option value="ruby">Ruby</option>
+        <option value="php">PHP</option>
+        <option value="shell">Shell</option>
+    </select>
+    <select class="filter-select" id="sortSelect">
+        <option value="stars">⭐ Stars</option>
+        <option value="forks">🍴 Forks</option>
+        <option value="updated">🕐 Updated</option>
+    </select>
+    <select class="filter-select" id="sourceSelect">
+        <option value="api">GitHub API</option>
+        <option value="trending">Trending Page</option>
+    </select>
+    <div class="stars-filter">
+        <span id="minStarsLabelText">⭐ Min:</span>
+        <input type="range" id="minStars" min="0" max="1000" value="0" step="10">
+        <span id="minStarsValue">0</span>
+    </div>
+    <button class="btn-refresh" id="btnRefresh" onclick="fetchRepos()">Refresh</button>
+</div>
+
+<div class="status-bar">
+    <div>
+        <span class="result-count" id="resultCount">—</span> <span id="repositoriesFoundText">repositories found</span>
+        <span id="sourceLabel" style="margin-left:8px;color:var(--text-dim)"></span>
+    </div>
+    <label class="auto-refresh">
+        <input type="checkbox" id="autoRefresh"> <span id="autoRefreshLabelText">Auto-refresh (60s)</span>
+    </label>
+</div>
+
+<div id="content">
+    <div class="loading">
+        <div class="spinner"></div>
+        <p style="color:var(--text-dim)">Loading trending repositories...</p>
+    </div>
+</div>
+
+<div class="footer" id="footerText">
+    Powered by <a href="https://docs.github.com/en/rest" target="_blank">GitHub API</a> •
+    Built with 🔥 GitHub Trending CLI
+</div>
+
+<script>
+const LANG_COLORS = {
+    "Python":"#3572A5","JavaScript":"#f1e05a","TypeScript":"#3178c6",
+    "Rust":"#dea584","Go":"#00ADD8","Java":"#b07219","C++":"#f34b7d",
+    "C":"#555","C#":"#178600","Swift":"#F05138","Kotlin":"#A97BFF",
+    "Ruby":"#701516","PHP":"#4F5D95","Shell":"#89e051","Dart":"#00B4AB",
+};
+
+const T = {
+    en: {
+        title: "🔥 GitHub Trending",
+        subtitle: "Discover the hottest repositories right now",
+        searchPlaceholder: "Search repositories...",
+        duration: { day: "Today", week: "This Week", month: "This Month", year: "This Year" },
+        allLanguages: "All Languages",
+        sort: { stars: "⭐ Stars", forks: "🍴 Forks", updated: "🕐 Updated" },
+        source: { api: "GitHub API", trending: "Trending Page" },
+        minStars: "⭐ Min:",
+        refresh: "Refresh",
+        found: "repositories found",
+        autoRefresh: "Auto-refresh (60s)",
+        loading: "Loading trending repositories...",
+        noRepos: "No repos found",
+        tryFilters: "Try different filters",
+        error: "Error",
+        tryAgain: "Try Again",
+        footer: 'Powered by <a href="https://docs.github.com/en/rest" target="_blank">GitHub API</a> • Built with 🔥 GitHub Trending CLI',
+        noDesc: "No description",
+        starsLabel: { day: "stars today", week: "stars this week", month: "stars this month", year: "stars this year" }
+    },
+    ru: {
+        title: "🔥 Тренды GitHub",
+        subtitle: "Открывайте самые популярные репозитории прямо сейчас",
+        searchPlaceholder: "Поиск репозиториев...",
+        duration: { day: "Сегодня", week: "На этой неделе", month: "В этом месяце", year: "В этом году" },
+        allLanguages: "Все языки",
+        sort: { stars: "⭐ Звезды", forks: "🍴 Форки", updated: "🕐 Обновлено" },
+        source: { api: "GitHub API", trending: "Страница трендов" },
+        minStars: "⭐ Мин:",
+        refresh: "Обновить",
+        found: "репозиториев найдено",
+        autoRefresh: "Автообновление (60с)",
+        loading: "Загрузка трендовых репозиториев...",
+        noRepos: "Репозитории не найдены",
+        tryFilters: "Попробуйте другие фильтры",
+        error: "Ошибка",
+        tryAgain: "Повторить",
+        footer: 'Работает на <a href="https://docs.github.com/en/rest" target="_blank">GitHub API</a> • Создано с помощью 🔥 GitHub Trending CLI',
+        noDesc: "Нет описания",
+        starsLabel: { day: "звезд сегодня", week: "звезд на этой неделе", month: "звезд в этом месяце", year: "звезд в этом году" }
+    }
+};
+
+let currentLang = localStorage.getItem("lang") || "en";
+let autoTimer=null;
+let lastFetchedRepos = null;
+let lastFetchedSource = "api";
+
+const $=id=>document.getElementById(id);
+
+$('minStars').addEventListener('input',e=>{$('minStarsValue').textContent=e.target.value});
+$('searchInput').addEventListener('keydown',e=>{if(e.key==='Enter')fetchRepos()});
+$('autoRefresh').addEventListener('change',e=>{
+    if(e.target.checked){fetchRepos();autoTimer=setInterval(fetchRepos,60000)}
+    else{clearInterval(autoTimer);autoTimer=null}
+});
+
+function changeLang(lang) {
+    currentLang = lang;
+    localStorage.setItem("lang", lang);
+    applyLanguage();
+}
+
+function applyLanguage() {
+    const lang = currentLang;
+    const t = T[lang];
+    
+    $('titleText').textContent = t.title;
+    $('subtitleText').textContent = t.subtitle;
+    $('searchInput').placeholder = t.searchPlaceholder;
+    
+    // Update duration dropdown options
+    const durSelect = $('durationSelect');
+    durSelect.options[0].text = t.duration.day;
+    durSelect.options[1].text = t.duration.week;
+    durSelect.options[2].text = t.duration.month;
+    durSelect.options[3].text = t.duration.year;
+    
+    // Update language select first option
+    $('languageSelect').options[0].text = t.allLanguages;
+    
+    // Update sort options
+    const sortSelect = $('sortSelect');
+    sortSelect.options[0].text = t.sort.stars;
+    sortSelect.options[1].text = t.sort.forks;
+    sortSelect.options[2].text = t.sort.updated;
+    
+    // Update source options
+    const srcSelect = $('sourceSelect');
+    srcSelect.options[0].text = t.source.api;
+    srcSelect.options[1].text = t.source.trending;
+    
+    // Update other elements
+    $('minStarsLabelText').textContent = t.minStars;
+    $('btnRefresh').textContent = t.refresh;
+    $('repositoriesFoundText').textContent = t.found;
+    $('autoRefreshLabelText').textContent = t.autoRefresh;
+    $('footerText').innerHTML = t.footer;
+    
+    // Toggle active state on switcher buttons
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.lang === lang);
+    });
+    
+    // Re-render the results if we already have some loaded
+    if (lastFetchedRepos) {
+        renderRepos(lastFetchedRepos, lastFetchedSource);
+    }
+}
+
+async function fetchRepos(){
+    const c=$('content');
+    const t = T[currentLang];
+    c.innerHTML=`<div class="loading"><div class="spinner"></div><p style="color:var(--text-dim)">${t.loading}</p></div>`;
+    const p=new URLSearchParams({
+        duration:$('durationSelect').value,
+        limit:'30',
+        sort:$('sortSelect').value,
+        source:$('sourceSelect').value,
+    });
+    const lang=$('languageSelect').value;
+    if(lang)p.set('language',lang);
+    const q=$('searchInput').value.trim();
+    if(q)p.set('query',q);
+    const ms=parseInt($('minStars').value);
+    if(ms>0)p.set('min_stars',ms);
+
+    try{
+        const r=await fetch('/api/trending?'+p);
+        const d=await r.json();
+        if(d.error){showError(d.error);return}
+        lastFetchedRepos = d.repos;
+        lastFetchedSource = d.source;
+        renderRepos(d.repos, d.source);
+    }catch(e){
+        showError(currentLang === 'ru' ? 'Не удалось подключиться. Сервер запущен?' : 'Failed to connect. Is the server running?');
+    }
+}
+
+function renderRepos(repos, source) {
+    const c=$('content');
+    const t = T[currentLang];
+    $('resultCount').textContent=repos.length;
+    
+    let sourceText = '';
+    if (source === 'trending') {
+        sourceText = currentLang === 'ru' ? '(Страница трендов)' : '(Trending page)';
+    } else {
+        sourceText = currentLang === 'ru' ? '(Поиск API)' : '(Search API)';
+    }
+    $('sourceLabel').textContent = sourceText;
+
+    if(!repos.length){
+        c.innerHTML=`<div class="error-box"><h3>${t.noRepos}</h3><p>${t.tryFilters}</p></div>`;
+        return;
+    }
+    c.innerHTML='<div class="grid">'+repos.map((r,i)=>card(r,i)).join('')+'</div>';
+}
+
+function showError(m){
+    const t = T[currentLang];
+    $('content').innerHTML=`<div class="error-box"><h3>❌ ${t.error}</h3><p>${m}</p><button class="btn-retry" onclick="fetchRepos()">${t.tryAgain}</button></div>`;
+    $('resultCount').textContent='0';
+}
+
+function card(r,i){
+    const n=r.full_name||'unknown';
+    const u=r.html_url||'https://github.com/'+n;
+    const d=r.description||T[currentLang].noDesc;
+    const s=(r.stargazers_count||0).toLocaleString();
+    const f=(r.forks_count||0).toLocaleString();
+    const l=r.language||'';
+    const lc=LANG_COLORS[l]||'#8b949e';
+    const sp=r.stars_period||0;
+    
+    let badge = '';
+    if (sp > 0) {
+        const dur = $('durationSelect').value;
+        const localizedLabel = T[currentLang].starsLabel[dur] || 'stars';
+        badge = `<span class="badge-hot">🔥 ${sp.toLocaleString()} ${localizedLabel}</span>`;
+    }
+    
+    const lang=l?`<span class="meta-item meta-lang"><span class="lang-dot" style="background:${lc}"></span>${esc(l)}</span>`:'';
+    return `<div class="card" style="animation-delay:${i*0.05}s">
+        <div class="card-header"><a class="card-name" href="${u}" target="_blank">${esc(n)}</a>${badge}</div>
+        <p class="card-desc">${esc(d)}</p>
+        <div class="card-meta"><span class="meta-item meta-stars">⭐ ${s}</span><span class="meta-item meta-forks">🍴 ${f}</span>${lang}</div>
+    </div>`;
+}
+
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+applyLanguage();
+fetchRepos();
+</script>
+</body>
+</html>

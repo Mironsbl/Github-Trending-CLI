@@ -1,0 +1,11 @@
+README.md
+github_api.py
+main.py
+setup.py
+utils.py
+github_trending_cli.egg-info/PKG-INFO
+github_trending_cli.egg-info/SOURCES.txt
+github_trending_cli.egg-info/dependency_links.txt
+github_trending_cli.egg-info/entry_points.txt
+github_trending_cli.egg-info/requires.txt
+github_trending_cli.egg-info/top_level.txt
