@@ -124,8 +124,90 @@ def _generate_mock_tweets(query: str) -> list[dict[str, str]]:
     ]
 
 
-def fetch_twitter_trends() -> list[dict[str, str]]:
-    """Fetch trending topics from public Nitter instances."""
+def generate_dev_trends(repos: list[dict]) -> list[dict[str, str]]:
+    """Analyze loaded trending repos and extract developer community trends."""
+    if not repos:
+        return []
+
+    import re
+    from collections import Counter
+
+    # Tech categories and their associated keywords/tags
+    categories = {
+        "#AIAgents": ["agent", "agents", "multi-agent", "autogen", "crewai", "swarm", "langchain"],
+        "#LLMs": ["llm", "llama", "gpt", "rag", "openai", "deepseek", "anthropic", "claude", "gemini", "prompt"],
+        "#RustLang": ["rust", "rustlang", "cargo"],
+        "#Python": ["python", "pip", "django", "fastapi", "numpy", "pytorch"],
+        "#TypeScript": ["typescript", "ts", "javascript", "js", "nodejs", "npm"],
+        "#GoLang": ["go", "golang"],
+        "#Frontend": ["react", "nextjs", "vue", "svelte", "tailwind", "css", "html", "vite", "webpack"],
+        "#DataEng": ["database", "db", "postgres", "sql", "mongodb", "vector", "milvus", "pinecone", "redis"],
+        "#CloudNative": ["docker", "kubernetes", "k8s", "devops", "aws", "terraform", "ansible"],
+        "#WebAssembly": ["wasm", "webassembly"],
+        "#Security": ["security", "exploit", "cybersecurity", "cve", "hack", "penetration", "auth"],
+        "#GameDev": ["game", "unity", "unreal", "godot", "sdl", "opengl"],
+    }
+
+    trend_counts = Counter()
+    trend_stars = {}
+
+    for repo in repos:
+        name = (repo.get("full_name") or repo.get("name") or "").lower()
+        desc = (repo.get("description") or "").lower()
+        lang = (repo.get("language") or "").lower()
+        stars = repo.get("stargazers_count") or repo.get("stars") or 0
+        stars_today = repo.get("stars_period") or 0
+
+        matched_categories = set()
+        
+        # Check language matches
+        if lang:
+            if "rust" in lang:
+                matched_categories.add("#RustLang")
+            elif "python" in lang:
+                matched_categories.add("#Python")
+            elif "typescript" in lang or "javascript" in lang:
+                matched_categories.add("#TypeScript")
+            elif "go" in lang:
+                matched_categories.add("#GoLang")
+
+        # Check keyword matches in name and description
+        for cat, keywords in categories.items():
+            for kw in keywords:
+                if re.search(r'\b' + re.escape(kw) + r'\b', name) or re.search(r'\b' + re.escape(kw) + r'\b', desc):
+                    matched_categories.add(cat)
+                    break
+        
+        for cat in matched_categories:
+            trend_counts[cat] += 1
+            if cat not in trend_stars:
+                trend_stars[cat] = {"total": 0, "today": 0}
+            trend_stars[cat]["total"] += stars
+            trend_stars[cat]["today"] += stars_today
+
+    sorted_trends = []
+    for cat, count in trend_counts.most_common(8):
+        today_stars = trend_stars[cat]["today"]
+        
+        if today_stars > 0:
+            count_str = f"{count} repos (+{today_stars} ⭐ today)"
+        else:
+            count_str = f"{count} active repos"
+            
+        sorted_trends.append({
+            "name": cat,
+            "tweet_count": count_str,
+            "url": f"https://x.com/search?q={urllib.parse.quote(cat)}"
+        })
+
+    return sorted_trends
+
+
+def fetch_twitter_trends(repos: list[dict] | None = None) -> list[dict[str, str]]:
+    """Fetch trending topics from public Nitter instances, merging with dev trends."""
+    dev_trends = generate_dev_trends(repos or [])
+    
+    nitter_trends = []
     headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                       "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -135,18 +217,32 @@ def fetch_twitter_trends() -> list[dict[str, str]]:
         url = f"https://{instance}/trends"
         try:
             logger.info("Attempting to fetch Twitter trends from Nitter instance: %s", instance)
-            resp = requests.get(url, headers=headers, timeout=5)
+            resp = requests.get(url, headers=headers, timeout=4)
             if resp.status_code == 200:
-                trends = _parse_nitter_trends(resp.text)
-                if trends:
-                    logger.info("Successfully fetched %d trends from %s", len(trends), instance)
-                    return trends
+                nitter_trends = _parse_nitter_trends(resp.text)
+                if nitter_trends:
+                    logger.info("Successfully fetched %d trends from %s", len(nitter_trends), instance)
+                    break
         except Exception as e:
             logger.warning("Nitter trends fetch failed for %s: %s", instance, e)
+
+    # Merge
+    existing_names = {t["name"].lower() for t in dev_trends}
+    merged_trends = list(dev_trends)
+    
+    for nt in nitter_trends:
+        if nt["name"].lower() not in existing_names:
+            merged_trends.append(nt)
+            existing_names.add(nt["name"].lower())
             
-    # Fallback to tech trending topics
-    logger.warning("All Nitter instances failed to fetch trends. Using tech-focused mock trends.")
-    return _generate_mock_trends()
+    if len(merged_trends) < 8:
+        for mock in _generate_mock_trends():
+            if mock["name"].lower() not in existing_names:
+                merged_trends.append(mock)
+                existing_names.add(mock["name"].lower())
+                
+    return merged_trends[:10]
+
 
 
 def _parse_nitter_trends(html_content: str) -> list[dict[str, str]]:

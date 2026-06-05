@@ -257,16 +257,27 @@ def api_search():
 @app.route("/api/trends")
 def api_trends():
     """API endpoint to get active Twitter/X trending topics."""
-    cached = utils.read_cache("trends", "global", 1, None, ttl=3600)  # cache trends for 1 hour
-    if cached is not None:
-        logger.info("Cache hit for Twitter trends")
-        return jsonify({"trends": cached, "cached": True})
-
-    logger.info("Cache miss for Twitter trends. Fetching.")
-    trends = twitter.fetch_twitter_trends()
+    # Read the latest loaded repositories from cache to extract trends
+    import json
+    from pathlib import Path
     
-    if trends:
-        utils.write_cache(trends, "trends", "global", 1, None)
+    repos = []
+    cache_dir = Path.home() / ".cache" / "github-trending-cli"
+    if cache_dir.exists():
+        files = list(cache_dir.glob("trending_*.json"))
+        if files:
+            files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
+            for file in files:
+                try:
+                    data = json.loads(file.read_text(encoding="utf-8"))
+                    if isinstance(data, list) and len(data) > 0 and ("full_name" in data[0] or "name" in data[0]):
+                        repos = data
+                        break
+                except Exception:
+                    continue
+
+    logger.info("Generating Twitter/Dev trends based on %d cached repositories", len(repos))
+    trends = twitter.fetch_twitter_trends(repos)
         
     return jsonify({"trends": trends, "cached": False})
 

@@ -884,7 +884,7 @@ const T = {
         apiKeySavedAlert: "API Key saved successfully!",
         aiButtonLabel: "AI",
         aiLoading: "Thinking...",
-        sidebarTrendsTitle: "🐦 Twitter Trends",
+        sidebarTrendsTitle: "🔥 Dev Community Trends",
         sidebarAiTipText: "Click 🤖 AI on any repository to get a quick summary, installation tips, and technical architecture reviews instantly.",
         minStarsOptions: {
             0: "Any Stars",
@@ -958,7 +958,7 @@ const T = {
         apiKeySavedAlert: "API Ключ успешно сохранен!",
         aiButtonLabel: "ИИ",
         aiLoading: "Думаю...",
-        sidebarTrendsTitle: "🐦 Тренды Twitter",
+        sidebarTrendsTitle: "🔥 Тренды сообщества",
         sidebarAiTipText: "Нажмите 🤖 ИИ на любом репозитории, чтобы мгновенно получить краткое описание, инструкции по установке и технический разбор.",
         minStarsOptions: {
             0: "Любые звезды",
@@ -1064,7 +1064,7 @@ function applyLanguage() {
     $('footerText').innerHTML = t.footer;
     
     // Sidebar static elements
-    $('sidebarTrendsTitle').innerHTML = `<span style="color: var(--blue);">🐦</span> ${t.sidebarTrendsTitle}`;
+    $('sidebarTrendsTitle').innerHTML = `<span style="color: #f97316;">🔥</span> ${t.sidebarTrendsTitle}`;
     $('sidebarAiTipText').textContent = t.sidebarAiTipText;
     
     // Modal static elements
@@ -1760,6 +1760,18 @@ function searchByTrend(event, trendName) {
         const query = trendName.startsWith('#') ? trendName.substring(1) : trendName;
         searchInput.value = query;
         fetchRepos();
+        
+        // Open AI agent and ask it to explain the trend!
+        const pane = $('aiChatPane');
+        if (pane) {
+            pane.style.display = 'flex';
+            const explainQuery = currentLang === 'ru'
+                ? `Объясни, почему тема ${trendName} сейчас популярна среди разработчиков. Какие репозитории на этой странице к ней относятся и какую пользу они приносят?`
+                : `Explain why the topic ${trendName} is currently trending among developers. Which repositories on this page relate to it and what benefits do they provide?`;
+            
+            appendAiMessage('user', explainQuery);
+            executeAiQuery(explainQuery);
+        }
     }
 }
 
