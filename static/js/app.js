@@ -902,6 +902,23 @@ function renderRepos(repos, source) {
     }
     $('sourceLabel').textContent = sourceText;
 
+    const badgeEl = $('footerSourceBadge');
+    if (badgeEl) {
+        let footerText = '';
+        if (source === 'trending') {
+            footerText = currentLang === 'ru' ? '🔌 Источник: Страница трендов' : '🔌 Source: Trending Page';
+            badgeEl.style.color = 'var(--gold)';
+            badgeEl.style.borderColor = 'rgba(245, 158, 11, 0.2)';
+            badgeEl.style.background = 'rgba(245, 158, 11, 0.08)';
+        } else {
+            footerText = currentLang === 'ru' ? '🌐 Источник: GitHub API' : '🌐 Source: GitHub Search API';
+            badgeEl.style.color = 'var(--accent)';
+            badgeEl.style.borderColor = 'rgba(99, 102, 241, 0.2)';
+            badgeEl.style.background = 'rgba(99, 102, 241, 0.08)';
+        }
+        badgeEl.textContent = footerText;
+    }
+
     if (!displayList.length) {
         c.innerHTML = `<div class="error-box"><h3>${t.noRepos}</h3><p>${t.tryFilters}</p></div>`;
         if (analyticsVisible) updateCharts();

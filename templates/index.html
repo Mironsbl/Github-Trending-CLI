@@ -297,8 +297,13 @@
             </div>
             
             <!-- Simple Footer inside Workspace -->
-            <footer class="footer" id="footerText">
-                Powered by <a href="https://docs.github.com/en/rest" target="_blank">GitHub API</a> • Built with 🔥 GitHub Trending CLI
+            <footer class="footer" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding: 20px 24px;">
+                <span id="footerText">
+                    Powered by <a href="https://docs.github.com/en/rest" target="_blank">GitHub API</a> • Built with 🔥 GitHub Trending CLI
+                </span>
+                <span id="footerSourceBadge" style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); color: var(--accent); font-size: 0.72rem; padding: 4px 12px; border-radius: 20px; font-weight: 600; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 6px;">
+                    Source: GitHub API
+                </span>
             </footer>
         </main>
 
