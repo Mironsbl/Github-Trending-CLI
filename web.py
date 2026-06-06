@@ -71,17 +71,21 @@ def api_trending():
     topic = request.args.get("topic") or None
     sort = request.args.get("sort", "stars")
     min_stars = request.args.get("min_stars")
+    max_stars = request.args.get("max_stars")
     min_forks = request.args.get("min_forks")
+    exclude_org = request.args.get("exclude_org") == "true"
     source = request.args.get("source", "api")
     query = request.args.get("query") or None
+    author = request.args.get("author") or None
     token = request.args.get("token") or os.environ.get("GITHUB_TOKEN")
     no_cache = request.args.get("no_cache") == "true"
 
     min_stars = int(min_stars) if min_stars else None
+    max_stars = int(max_stars) if max_stars else None
     min_forks = int(min_forks) if min_forks else None
 
     # Check cache first if not explicitly bypassed
-    if not no_cache:
+    if not no_cache and not author and not exclude_org and max_stars is None:
         cached = utils.read_cache(source, duration, limit, language)
         if cached is not None:
             logger.info("Cache hit for source=%s duration=%s lang=%s", source, duration, language)
@@ -120,8 +124,10 @@ def api_trending():
                 repos = github_api.fetch_trending_repos(
                     duration=duration, limit=limit, language=language,
                     topic=topic, sort=api_sort, min_stars=min_stars,
+                    max_stars=max_stars,
                     min_forks=min_forks, token=token,
-                    query_keyword=query,
+                    query_keyword=query, author=author,
+                    exclude_org=exclude_org,
                 )
                 for r in repos:
                     r["source"] = "api"
@@ -136,9 +142,12 @@ def api_trending():
                 topic=topic,
                 sort=api_sort,
                 min_stars=min_stars,
+                max_stars=max_stars,
                 min_forks=min_forks,
                 token=token,
                 query_keyword=query,
+                author=author,
+                exclude_org=exclude_org,
             )
             for r in repos:
                 r["source"] = "api"

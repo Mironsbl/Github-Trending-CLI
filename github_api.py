@@ -21,9 +21,12 @@ def fetch_trending_repos(
     topic: str | None = None,
     sort: str = "stars",
     min_stars: int | None = None,
+    max_stars: int | None = None,
     min_forks: int | None = None,
     token: str | None = None,
     query_keyword: str | None = None,
+    author: str | None = None,
+    exclude_org: bool = False,
 ) -> list[dict[str, Any]]:
     """Fetch trending repositories from the GitHub Search API.
 
@@ -34,9 +37,12 @@ def fetch_trending_repos(
         topic: Optional topic filter (e.g. 'machine-learning').
         sort: Sort field — 'stars', 'forks', or 'updated'.
         min_stars: Minimum star count filter.
+        max_stars: Maximum star count filter.
         min_forks: Minimum fork count filter.
         token: Optional GitHub personal-access token.
         query_keyword: Optional keyword query.
+        author: Optional author/owner username or organization.
+        exclude_org: Exclude large technology organizations.
 
     Returns:
         A list of repository dicts as returned by the GitHub API.
@@ -49,14 +55,29 @@ def fetch_trending_repos(
 
     if query_keyword:
         query += f" {query_keyword}"
+    if author:
+        query += f" user:{author}"
     if language:
         query += f" language:{language}"
     if topic:
         query += f" topic:{topic}"
-    if min_stars is not None and min_stars > 0:
-        query += f" stars:>={min_stars}"
+    
+    # Stars range or bound logic
+    if min_stars is not None or max_stars is not None:
+        if min_stars is not None and max_stars is not None:
+            query += f" stars:{min_stars}..{max_stars}"
+        elif min_stars is not None and min_stars > 0:
+            query += f" stars:>={min_stars}"
+        elif max_stars is not None:
+            query += f" stars:<={max_stars}"
+
     if min_forks is not None and min_forks > 0:
         query += f" forks:>={min_forks}"
+
+    if exclude_org:
+        big_orgs = ["google", "microsoft", "facebook", "meta", "apple", "amazon", "netflix", "apache", "github", "hashicorp", "aws", "vercel", "cloudflare", "kubernetes", "docker", "elastic", "mozilla", "canonical", "oracle"]
+        for org in big_orgs:
+            query += f" -org:{org}"
 
     # Resolve token: explicit arg → env var → unauthenticated
     resolved_token = token or os.environ.get("GITHUB_TOKEN")

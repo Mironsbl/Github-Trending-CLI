@@ -625,6 +625,14 @@
     <div class="search-box">
         <input type="text" id="searchInput" placeholder="Search repositories...">
     </div>
+    <select class="filter-select" id="queryPresetsSelect" onchange="applyPresetQuery()" style="border-color: rgba(96,165,250,0.3); color: #93c5fd;">
+        <option value="all">🔍 Default Search</option>
+        <option value="security">🛡️ Security & Audits</option>
+        <option value="bypasses">🔓 Bypasses & Hacks</option>
+        <option value="hidden">👁️ Hidden / Obscure</option>
+        <option value="network">🌐 Network & Proxy</option>
+        <option value="obscure_authors">👤 Obscure / Independent Authors</option>
+    </select>
     <select class="filter-select" id="durationSelect">
         <option value="day">Today</option>
         <option value="week" selected>This Week</option>
@@ -688,9 +696,21 @@
         <span style="font-size:0.75rem; color:var(--text-dim);" id="advTopicLabel">Topic / Tag</span>
         <input type="text" id="advTopicInput" placeholder="e.g. machine-learning" style="padding: 10px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 0.85rem; outline: none; transition: border-color 0.3s; width: 100%;" onchange="fetchRepos()">
     </div>
+    <div style="display:flex; flex-direction:column; gap:6px; min-width: 180px; align-items: flex-start;">
+        <span style="font-size:0.75rem; color:var(--text-dim);" id="advAuthorLabel">Owner / Author</span>
+        <input type="text" id="advAuthorInput" placeholder="e.g. google or torvalds" style="padding: 10px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 0.85rem; outline: none; transition: border-color 0.3s; width: 100%;" onchange="fetchRepos()">
+    </div>
     <div style="display:flex; flex-direction:column; gap:6px; min-width: 140px; align-items: flex-start;">
         <span style="font-size:0.75rem; color:var(--text-dim);" id="advMinForksLabel">Min Forks</span>
         <input type="number" id="advMinForksInput" placeholder="Min Forks" style="padding: 10px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 0.85rem; outline: none; transition: border-color 0.3s; width: 100%;" onchange="fetchRepos()">
+    </div>
+    <div style="display:flex; flex-direction:column; gap:6px; min-width: 140px; align-items: flex-start;">
+        <span style="font-size:0.75rem; color:var(--text-dim);" id="advMaxStarsLabel">Max Stars</span>
+        <input type="number" id="advMaxStarsInput" placeholder="e.g. 500" style="padding: 10px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 0.85rem; outline: none; transition: border-color 0.3s; width: 100%;" onchange="fetchRepos()">
+    </div>
+    <div style="display:flex; align-items:center; gap:8px; margin-top: 18px; min-width: 180px;">
+        <input type="checkbox" id="advExcludeOrgCheckbox" onchange="fetchRepos()" style="cursor:pointer; width:16px; height:16px;">
+        <span style="font-size:0.85rem; color:var(--text-dim); cursor:pointer;" id="advExcludeOrgLabel">Exclude Big Tech</span>
     </div>
 </div>
 
@@ -937,7 +957,16 @@ const T = {
         modalAiOpinionHeader: "🤖 AI Community Sentiment Analysis",
         advToggle: "Advanced",
         advTopic: "Topic / Tag",
+        advAuthor: "Owner / Author",
         advMinForks: "Min Forks",
+        advMaxStars: "Max Stars",
+        advExcludeOrg: "Exclude Big Tech",
+        presetDefault: "🔍 Default Search",
+        presetSecurity: "🛡️ Security & Audits",
+        presetBypasses: "🔓 Bypasses & Hacks",
+        presetHidden: "👁️ Hidden / Obscure",
+        presetNetwork: "🌐 Network & Proxy",
+        presetObscureAuthors: "👤 Obscure / Independent Authors",
         chipSuggest: "🚀 Suggest Hot Repos",
         chipExplain: "🔥 Explain Trends",
         chipDigest: "📋 Daily Digest",
@@ -1019,7 +1048,16 @@ const T = {
         modalAiOpinionHeader: "🤖 ИИ-анализ мнений сообщества разработчиков",
         advToggle: "Фильтры",
         advTopic: "Тема / Тег",
+        advAuthor: "Автор / Организация",
         advMinForks: "Мин. форков",
+        advMaxStars: "Макс. звёзд",
+        advExcludeOrg: "Без IT-гигантов",
+        presetDefault: "🔍 Поиск по умолчанию",
+        presetSecurity: "🛡️ Безопасность и аудит",
+        presetBypasses: "🔓 Обходы и взломы",
+        presetHidden: "👁️ Скрытые / Малоизвестные",
+        presetNetwork: "🌐 Сети и прокси",
+        presetObscureAuthors: "👤 Скрытые / Независимые авторы",
         chipSuggest: "🚀 Рекомендовать тренды",
         chipExplain: "🔥 Объяснить темы",
         chipDigest: "📋 Дайджест дня",
@@ -1150,8 +1188,22 @@ function applyLanguage() {
     
     // Update advanced panel translations
     $('advTopicLabel').textContent = t.advTopic;
+    $('advAuthorLabel').textContent = t.advAuthor;
     $('advMinForksLabel').textContent = t.advMinForks;
+    if ($('advMaxStarsLabel')) $('advMaxStarsLabel').textContent = t.advMaxStars;
+    if ($('advExcludeOrgLabel')) $('advExcludeOrgLabel').textContent = t.advExcludeOrg;
     $('btnAdvancedToggle').innerHTML = `⚙️ ${t.advToggle}`;
+
+    // Update presets select options
+    const presetsSelect = $('queryPresetsSelect');
+    if (presetsSelect && presetsSelect.options.length >= 6) {
+        presetsSelect.options[0].textContent = t.presetDefault;
+        presetsSelect.options[1].textContent = t.presetSecurity;
+        presetsSelect.options[2].textContent = t.presetBypasses;
+        presetsSelect.options[3].textContent = t.presetHidden;
+        presetsSelect.options[4].textContent = t.presetNetwork;
+        presetsSelect.options[5].textContent = t.presetObscureAuthors;
+    }
     
     // Update chip buttons
     $('chipSuggestText').textContent = t.chipSuggest;
@@ -1413,9 +1465,38 @@ async function fetchRepos(){
 
     const topicVal = $('advTopicInput') ? $('advTopicInput').value.trim() : '';
     if(topicVal) p.set('topic', topicVal);
+
+    const authorVal = $('advAuthorInput') ? $('advAuthorInput').value.trim() : '';
+    if(authorVal) p.set('author', authorVal);
     
     const forksVal = $('advMinForksInput') ? $('advMinForksInput').value.trim() : '';
     if(forksVal) p.set('min_forks', forksVal);
+
+    const maxStarsVal = $('advMaxStarsInput') ? $('advMaxStarsInput').value.trim() : '';
+    if (maxStarsVal) p.set('max_stars', maxStarsVal);
+
+    const excludeOrg = $('advExcludeOrgCheckbox') ? $('advExcludeOrgCheckbox').checked : false;
+    if (excludeOrg) p.set('exclude_org', 'true');
+
+    // Apply preset query adjustments before calling API
+    const preset = $('queryPresetsSelect').value;
+    if (preset === 'security') {
+        p.set('topic', 'security');
+        if (!p.has('query')) p.set('query', 'exploit OR vulnerability OR audit');
+    } else if (preset === 'bypasses') {
+        if (!p.has('query')) p.set('query', 'bypass OR jailbreak OR waf OR evade');
+    } else if (preset === 'hidden') {
+        p.set('min_stars', 5);
+        if (!maxStarsVal) p.set('max_stars', 1000);
+        p.set('exclude_org', 'true');
+        if (!p.has('query')) p.set('query', 'sandbox-escape OR untracked OR experimental');
+    } else if (preset === 'network') {
+        if (!p.has('query')) p.set('query', 'proxy OR tunnels OR reverse-proxy OR dns-over-https');
+    } else if (preset === 'obscure_authors') {
+        if (!maxStarsVal) p.set('max_stars', 500);
+        p.set('exclude_org', 'true');
+        if (!p.has('query')) p.set('query', 'security OR tools OR exploit');
+    }
 
     try{
         const r=await fetch('/api/trending?'+p);
@@ -2007,6 +2088,37 @@ window.addEventListener('click', e => {
 });
 
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+function applyPresetQuery() {
+    const preset = $('queryPresetsSelect').value;
+    const searchInput = $('searchInput');
+    const maxStarsInput = $('advMaxStarsInput');
+    const excludeOrgCheckbox = $('advExcludeOrgCheckbox');
+    
+    // Reset defaults to avoid state leaking between preset selections
+    if (maxStarsInput) maxStarsInput.value = '';
+    if (excludeOrgCheckbox) excludeOrgCheckbox.checked = false;
+    
+    if (preset === 'all') {
+        searchInput.value = '';
+    } else if (preset === 'security') {
+        searchInput.value = 'exploit OR vulnerability OR audit';
+    } else if (preset === 'bypasses') {
+        searchInput.value = 'bypass OR jailbreak OR waf OR evade';
+    } else if (preset === 'hidden') {
+        searchInput.value = 'sandbox-escape OR untracked OR experimental';
+        if (maxStarsInput) maxStarsInput.value = '1000';
+        if (excludeOrgCheckbox) excludeOrgCheckbox.checked = true;
+    } else if (preset === 'network') {
+        searchInput.value = 'proxy OR tunnels OR reverse-proxy';
+    } else if (preset === 'obscure_authors') {
+        searchInput.value = 'security OR tools OR exploit';
+        if (maxStarsInput) maxStarsInput.value = '500';
+        if (excludeOrgCheckbox) excludeOrgCheckbox.checked = true;
+    }
+    
+    fetchRepos();
+}
 
 applyLanguage();
 fetchRepos();
