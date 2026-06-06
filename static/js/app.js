@@ -50,12 +50,15 @@ const T = {
         aiRepoContext: "Context: analyzing {name}",
         aiClearContext: "Reset to Global",
         aiHelpGreeting: "Hello! I am your Gemini AI Coding Agent. Ask me questions about the trending repositories currently loaded on this page, or click 🤖 AI on any repository card to summarize it!",
-        apiKeyTitle: "Gemini API Key Settings",
-        apiKeyDesc: "Provide your Google Gemini API key to enable AI features. It is stored locally in your browser.",
+        apiKeyTitle: "🔑 API Settings",
+        apiKeyDesc: "Provide your API keys to unlock advanced features. Your Gemini API key unlocks summaries, and your GitHub Token unlocks high-rate search.",
         apiKeyPlaceholder: "Enter Gemini API Key...",
-        apiKeySave: "Save Key",
+        githubTokenPlaceholder: "Enter GitHub Token (optional)...",
+        githubTokenLabel: "GitHub Personal Access Token (Optional)",
+        geminiKeyLabel: "Gemini API Key",
+        apiKeySave: "Save Settings",
         apiKeyCancel: "Cancel",
-        apiKeySavedAlert: "API Key saved successfully!",
+        apiKeySavedAlert: "Settings saved successfully!",
         aiButtonLabel: "AI",
         aiLoading: "Thinking...",
         sidebarTrendsTitle: "🔥 Dev Community Trends",
@@ -101,6 +104,7 @@ const T = {
         },
         companionChatTab: "Assistant",
         companionTrendsTab: "Community Trends",
+        resetFilters: "🧹 Reset",
         sidebarTitles: {
             search: "Search",
             presets: "Presets",
@@ -123,6 +127,7 @@ const T = {
         source: { api: "GitHub API", trending: "Страница трендов" },
         minStars: "⭐ Мин:",
         refresh: "Обновить",
+        resetFilters: "🧹 Сбросить",
         found: "репозиториев найдено",
         autoRefresh: "Автообновление (60с)",
         loading: "Загрузка трендовых репозиториев...",
@@ -155,12 +160,15 @@ const T = {
         aiRepoContext: "Контекст: анализ {name}",
         aiClearContext: "Сбросить к глобальному",
         aiHelpGreeting: "Привет! Я твой ИИ-помощник Gemini. Задавай мне вопросы о текущих трендовых репозиториях на странице или нажми 🤖 ИИ на карточке любого репозитория, чтобы получить его краткую сводку!",
-        apiKeyTitle: "Настройки ключа Gemini API",
-        apiKeyDesc: "Введите ваш Google Gemini API ключ для работы ИИ-агента. Он сохраняется локально в вашем браузере.",
+        apiKeyTitle: "🔑 Настройки API и токенов",
+        apiKeyDesc: "Укажите ваши ключи для доступа к расширенным функциям. Ключ Gemini API нужен для ИИ-ассистента, а токен GitHub уберет лимиты на поиск.",
         apiKeyPlaceholder: "Введите Gemini API Ключ...",
-        apiKeySave: "Сохранить",
+        githubTokenPlaceholder: "Введите GitHub Токен (опционально)...",
+        githubTokenLabel: "GitHub Personal Access Token (Опционально)",
+        geminiKeyLabel: "Gemini API Ключ",
+        apiKeySave: "Сохранить настройки",
         apiKeyCancel: "Отмена",
-        apiKeySavedAlert: "API Ключ успешно сохранен!",
+        apiKeySavedAlert: "Настройки успешно сохранены!",
         aiButtonLabel: "ИИ",
         aiLoading: "Думаю...",
         sidebarTrendsTitle: "🔥 Тренды сообщества",
@@ -354,6 +362,7 @@ function applyLanguage() {
     // Update other labels
     $('minStarsLabelText').textContent = t.minStars;
     $('btnRefresh').textContent = t.refresh;
+    if ($('btnResetFilters')) $('btnResetFilters').textContent = t.resetFilters;
     $('repositoriesFoundText').textContent = t.found;
     $('autoRefreshLabelText').textContent = t.autoRefresh;
     $('footerText').innerHTML = t.footer;
@@ -403,8 +412,20 @@ function applyLanguage() {
     $('apiKeyModalTitleText').textContent = t.apiKeyTitle;
     $('apiKeyModalDescText').textContent = t.apiKeyDesc;
     $('apiKeyInput').placeholder = t.apiKeyPlaceholder;
+    if ($('githubTokenInput')) $('githubTokenInput').placeholder = t.githubTokenPlaceholder;
+    if ($('githubTokenLabel')) $('githubTokenLabel').textContent = t.githubTokenLabel;
+    if ($('geminiKeyLabel')) $('geminiKeyLabel').textContent = t.geminiKeyLabel;
     $('apiKeySaveBtnText').textContent = t.apiKeySave;
     $('apiKeyCancelBtnText').textContent = t.apiKeyCancel;
+    
+    const btnApiSettings = $('btnApiSettings');
+    if (btnApiSettings) {
+        btnApiSettings.title = currentLang === 'ru' ? 'Настройки API' : 'API Settings';
+        const span = btnApiSettings.querySelector('.btn-text');
+        if (span) {
+            span.textContent = currentLang === 'ru' ? 'Настройки API' : 'API Settings';
+        }
+    }
     
     // AI panel translations
     $('aiAgentTitleText').textContent = t.aiBubbleTitle;
@@ -731,6 +752,9 @@ async function fetchRepos() {
     const deepSearch = $('deepSearchCheckbox') ? $('deepSearchCheckbox').checked : false;
     if (deepSearch) p.set('deep_search', 'true');
     
+    const token = localStorage.getItem("github_token") || "";
+    if (token) p.set('token', token);
+    
     let ms = 0;
     const selectVal = $('minStarsSelect') ? $('minStarsSelect').value : '0';
     if (selectVal === 'custom') {
@@ -804,6 +828,50 @@ async function fetchRepos() {
         console.error("fetchRepos error:", e);
         showError((currentLang === 'ru' ? 'Не удалось подключиться. Сервер запущен?' : 'Failed to connect. Is the server running?') + '<br><small style="color:var(--text-dim); font-size:0.75rem;">' + esc(e.toString()) + '</small>');
     }
+}
+
+function resetAllFilters() {
+    // Reset search
+    $('searchInput').value = '';
+    
+    // Reset deep search
+    const deepSearch = $('deepSearchCheckbox');
+    if (deepSearch) deepSearch.checked = false;
+    
+    // Reset preset
+    const presetItems = document.querySelectorAll('.preset-item');
+    presetItems.forEach(item => item.classList.remove('active'));
+    const defaultPreset = document.querySelector('.preset-item[data-preset="all"]');
+    if (defaultPreset) defaultPreset.classList.add('active');
+    $('queryPresetsSelect').value = 'all';
+    
+    // Reset selects
+    $('durationSelect').value = 'week';
+    $('languageSelect').value = '';
+    $('sortSelect').value = 'stars';
+    $('sourceSelect').value = 'api';
+    $('limitSelect').value = '25';
+    $('minStarsSelect').value = '0';
+    
+    // Hide custom stars input
+    const customStars = $('minStarsCustomInput');
+    if (customStars) {
+        customStars.value = '';
+        customStars.style.display = 'none';
+    }
+    
+    // Reset advanced
+    if ($('advTopicInput')) $('advTopicInput').value = '';
+    if ($('advAuthorInput')) $('advAuthorInput').value = '';
+    if ($('advMinForksInput')) $('advMinForksInput').value = '';
+    if ($('advMaxStarsInput')) $('advMaxStarsInput').value = '';
+    if ($('advExcludeOrgCheckbox')) $('advExcludeOrgCheckbox').checked = false;
+    
+    // Reset active tags cloud filters
+    activeTagFilter = null;
+    
+    // Fetch repos
+    fetchRepos();
 }
 
 function renderRepos(repos, source) {
@@ -1127,6 +1195,9 @@ function clearAiContext() {
 function openApiKeyModal() {
     $('apiKeyModal').classList.add('open');
     $('apiKeyInput').value = localStorage.getItem("gemini_api_key") || "";
+    if ($('githubTokenInput')) {
+        $('githubTokenInput').value = localStorage.getItem("github_token") || "";
+    }
 }
 
 function closeApiKeyModal() {
@@ -1136,6 +1207,12 @@ function closeApiKeyModal() {
 function saveApiKey() {
     const key = $('apiKeyInput').value.trim();
     localStorage.setItem("gemini_api_key", key);
+    
+    if ($('githubTokenInput')) {
+        const token = $('githubTokenInput').value.trim();
+        localStorage.setItem("github_token", token);
+    }
+    
     closeApiKeyModal();
     alert(T[currentLang].apiKeySavedAlert);
     if (key && aiHistory.length === 0) {

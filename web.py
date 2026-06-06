@@ -340,8 +340,9 @@ def api_trending():
         if max_stars is None:
             max_stars = 600
 
-    # Check cache first if not explicitly bypassed
-    if not no_cache and not author and not exclude_org and max_stars is None and not (source == "api" and query):
+    # Check cache first if not explicitly bypassed and no filters are active
+    has_filters = bool(query or author or exclude_org or min_stars or max_stars or min_forks or deep_search)
+    if not no_cache and not has_filters:
         cached = utils.read_cache(source, duration, limit, language)
         if cached is not None:
             logger.info("Cache hit for source=%s duration=%s lang=%s", source, duration, language)
@@ -434,6 +435,33 @@ def api_trending():
         # Apply local filtering if search query is active
         if original_query and repos:
             repos = filter_obscure_repos(repos, original_query)
+
+        # Apply other local filters for trending source to ensure they are respected
+        if source == "trending" and repos:
+            filtered = []
+            for r in repos:
+                stars = r.get("stargazers_count") or r.get("stars") or 0
+                forks = r.get("forks_count") or r.get("forks") or 0
+                
+                if min_stars is not None and stars < min_stars:
+                    continue
+                if max_stars is not None and stars > max_stars:
+                    continue
+                if min_forks is not None and forks < min_forks:
+                    continue
+                if author:
+                    r_name = r.get("full_name") or r.get("name") or ""
+                    r_owner = r_name.split("/")[0] if "/" in r_name else ""
+                    if r_owner.lower() != author.lower():
+                        continue
+                if exclude_org:
+                    big_orgs = {"google", "microsoft", "facebook", "meta", "apple", "amazon", "netflix", "apache", "github", "hashicorp", "aws", "vercel", "cloudflare", "kubernetes", "docker", "elastic", "mozilla", "canonical", "oracle"}
+                    r_name = r.get("full_name") or r.get("name") or ""
+                    r_owner = r_name.split("/")[0].lower() if "/" in r_name else ""
+                    if r_owner in big_orgs:
+                        continue
+                filtered.append(r)
+            repos = filtered
 
         # Supplement with Search API if count is below requested limit for trending source
         if source == "trending" and len(repos) < limit:

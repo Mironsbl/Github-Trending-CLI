@@ -44,7 +44,7 @@
             <!-- Settings & AI Toggle -->
             <button class="btn btn-sm" onclick="toggleWatchlistPanel()" title="Your Watchlist" style="height: 32px;">🔔 <span id="watchlistCountBadge" style="display:none; background:var(--gold); color:#000; border-radius:50%; width:16px; height:16px; font-size:0.6rem; font-weight:800; display:inline-flex; align-items:center; justify-content:center; margin-left:2px;">0</span></button>
             <button class="btn btn-sm" onclick="openDigestModal()" title="Generate Weekly Digest" style="height: 32px;">📧 <span class="btn-text">Digest</span></button>
-            <button class="btn btn-sm" onclick="openApiKeyModal()" title="Gemini API Key Settings" style="height: 32px;">🔑 <span class="btn-text">API Key</span></button>
+            <button class="btn btn-sm" onclick="openApiKeyModal()" title="API Settings" id="btnApiSettings" style="height: 32px;">🔑 <span class="btn-text">API Settings</span></button>
             <button class="btn btn-sm btn-accent" onclick="toggleAiChat()" title="Toggle AI Chat Panel" style="height: 32px;">🤖 <span class="btn-text">AI Chat</span></button>
         </div>
     </header>
@@ -196,7 +196,10 @@
             
             <!-- Action Utility Buttons -->
             <div class="filter-group" style="margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); gap: 10px;">
-                <button class="btn btn-accent" id="btnRefresh" onclick="fetchRepos()" style="width: 100%;">Refresh</button>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-accent" id="btnRefresh" onclick="fetchRepos()" style="flex: 2; height: 36px; line-height: 1;">Refresh</button>
+                    <button class="btn btn-ghost" id="btnResetFilters" onclick="resetAllFilters()" style="flex: 1; font-size: 0.78rem; height: 36px; line-height: 1; padding: 4px;" title="Reset all filters">🧹 Reset</button>
+                </div>
                 <div style="display: flex; gap: 8px;">
                     <button class="btn btn-ghost" id="btnAnalytics" onclick="toggleAnalytics()" style="flex: 1; font-size: 0.78rem;">📊 Analytics</button>
                     <button class="btn btn-ghost" id="btnHistory" onclick="toggleHistoryPanel()" style="flex: 1; font-size: 0.78rem;">📜 Archive</button>
@@ -455,16 +458,28 @@
 
 <!-- Modal: Google Gemini API Key Settings -->
 <div id="apiKeyModal" class="modal">
-    <div class="modal-content" style="max-width: 420px;">
+    <div class="modal-content" style="max-width: 440px;">
         <span class="close-modal" onclick="closeApiKeyModal()">&times;</span>
-        <h3 id="apiKeyModalTitleText" style="font-size:1.1rem; font-weight:700; margin-bottom:12px;">🔑 Gemini API Key Settings</h3>
+        <h3 id="apiKeyModalTitleText" style="font-size:1.1rem; font-weight:700; margin-bottom:12px;">🔑 API Settings</h3>
         <p style="color:var(--text-dim); font-size:0.8rem; margin-bottom:16px;" id="apiKeyModalDescText">
-            Provide your Google Gemini API key to enable instant repository summarization, comparison, and manifest auditing. The key is stored safely in localStorage.
+            Provide your API keys to unlock advanced features. The keys are stored safely in localStorage.
         </p>
-        <input type="password" id="apiKeyInput" placeholder="Enter Gemini API Key..." style="width:100%; padding:10px 12px; background:var(--bg-input); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:0.85rem; font-family:inherit; outline:none; margin-bottom:16px;">
+        
+        <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:20px;">
+            <div style="display:flex; flex-direction:column; gap:4px;">
+                <label for="apiKeyInput" style="font-size:0.75rem; font-weight:600; color:var(--text-dim);" id="geminiKeyLabel">Gemini API Key</label>
+                <input type="password" id="apiKeyInput" placeholder="Enter Gemini API Key..." style="width:100%; padding:10px 12px; background:var(--bg-input); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:0.85rem; font-family:inherit; outline:none;">
+            </div>
+            
+            <div style="display:flex; flex-direction:column; gap:4px;">
+                <label for="githubTokenInput" style="font-size:0.75rem; font-weight:600; color:var(--text-dim);" id="githubTokenLabel">GitHub Personal Access Token (Optional)</label>
+                <input type="password" id="githubTokenInput" placeholder="Enter GitHub Token (for high-rate search)..." style="width:100%; padding:10px 12px; background:var(--bg-input); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:0.85rem; font-family:inherit; outline:none;">
+            </div>
+        </div>
+        
         <div style="display:flex; justify-content:flex-end; gap:8px;">
             <button onclick="closeApiKeyModal()" class="btn btn-sm btn-ghost" id="apiKeyCancelBtnText">Cancel</button>
-            <button onclick="saveApiKey()" class="btn btn-sm btn-accent" id="apiKeySaveBtnText">Save Key</button>
+            <button onclick="saveApiKey()" class="btn btn-sm btn-accent" id="apiKeySaveBtnText">Save Settings</button>
         </div>
     </div>
 </div>
