@@ -39,6 +39,8 @@
             </div>
             
             <!-- Settings & AI Toggle -->
+            <button class="btn btn-sm" onclick="toggleWatchlistPanel()" title="Your Watchlist" style="height: 32px;">🔔 <span id="watchlistCountBadge" style="display:none; background:var(--gold); color:#000; border-radius:50%; width:16px; height:16px; font-size:0.6rem; font-weight:800; display:inline-flex; align-items:center; justify-content:center; margin-left:2px;">0</span></button>
+            <button class="btn btn-sm" onclick="openDigestModal()" title="Generate Weekly Digest" style="height: 32px;">📧 Digest</button>
             <button class="btn btn-sm" onclick="openApiKeyModal()" title="Gemini API Key Settings" style="height: 32px;">🔑 API Key</button>
             <button class="btn btn-sm btn-accent" onclick="toggleAiChat()" title="Toggle AI Chat Panel" style="height: 32px;">🤖 AI Chat</button>
         </div>
@@ -257,6 +259,19 @@
                 </div>
             </div>
 
+            <!-- Watchlist Panel (collapsible) -->
+            <div id="watchlistPanel" class="watchlist-panel">
+                <div class="watchlist-panel-header">
+                    <h3 id="watchlistTitle">🔔 Watchlist</h3>
+                    <div style="display:flex; gap:6px;">
+                        <button class="btn btn-sm btn-ghost" onclick="exportWatchlist()" title="Export as JSON" style="font-size:0.7rem;">📥 Export</button>
+                        <button class="btn btn-sm btn-ghost" onclick="clearWatchlist()" style="font-size:0.7rem;">🗑️ Clear</button>
+                    </div>
+                </div>
+                <div id="watchlistMilestones"></div>
+                <div id="watchlistItems">No saved repositories yet.</div>
+            </div>
+
             <!-- Tags Cloud (Popular topics) -->
             <div class="tags-cloud" id="tagsCloud" style="display:none;">
                 <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-right: 6px;" id="topicsCloudTitle">Popular Topics:</span>
@@ -436,6 +451,23 @@
         <div style="display:flex; justify-content:flex-end; gap:8px;">
             <button onclick="closeApiKeyModal()" class="btn btn-sm btn-ghost" id="apiKeyCancelBtnText">Cancel</button>
             <button onclick="saveApiKey()" class="btn btn-sm btn-accent" id="apiKeySaveBtnText">Save Key</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Digest Generator -->
+<div id="digestModal" class="modal">
+    <div class="modal-content" style="max-width: 700px; width: 92%;">
+        <span class="close-modal" onclick="closeDigestModal()">&times;</span>
+        <h2 style="font-size:1.25rem; font-weight:700; margin-bottom:4px;">📧 Weekly Digest Generator</h2>
+        <p style="color:var(--text-dim); font-size:0.8rem; margin-bottom:16px;" id="digestDescText">Generate a beautiful newsletter-ready digest from the current trending repositories.</p>
+        <div id="digestContent" class="digest-preview">
+            <p style="color:var(--text-muted); text-align:center;">Click "Generate" to create your digest.</p>
+        </div>
+        <div class="digest-actions">
+            <button class="btn btn-sm btn-ghost" onclick="copyDigest()" id="digestCopyBtn">📋 Copy Markdown</button>
+            <button class="btn btn-sm btn-ghost" onclick="downloadDigest()" id="digestDownloadBtn">💾 Download .md</button>
+            <button class="btn btn-sm btn-accent" onclick="generateDigest()" id="digestGenerateBtn">🤖 Generate with AI</button>
         </div>
     </div>
 </div>

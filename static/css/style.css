@@ -1269,3 +1269,298 @@ body {
     font-weight: 600;
     user-select: none;
 }
+
+/* ========================================================
+   SPRINT 1 FEATURES: Velocity, Watchlist, Trust Score, Digest
+   ======================================================== */
+
+/* --- Velocity Radar Indicator --- */
+.velocity-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1;
+    white-space: nowrap;
+}
+.velocity-badge.rising {
+    background: rgba(16, 185, 129, 0.12);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+}
+.velocity-badge.stable {
+    background: rgba(251, 191, 36, 0.1);
+    color: #fbbf24;
+    border: 1px solid rgba(251, 191, 36, 0.2);
+}
+.velocity-badge.declining {
+    background: rgba(113, 113, 122, 0.1);
+    color: #71717a;
+    border: 1px solid rgba(113, 113, 122, 0.2);
+}
+.velocity-badge .pulse-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    animation: pulse-glow 1.8s ease-in-out infinite;
+}
+.velocity-badge.rising .pulse-dot {
+    background: #34d399;
+    box-shadow: 0 0 4px #34d399;
+}
+.velocity-badge.stable .pulse-dot {
+    background: #fbbf24;
+    box-shadow: 0 0 4px #fbbf24;
+    animation-duration: 2.5s;
+}
+.velocity-badge.declining .pulse-dot {
+    background: #71717a;
+    animation: none;
+}
+
+@keyframes pulse-glow {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(1.4); }
+}
+
+/* --- Trust Score Badge --- */
+.trust-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+.trust-badge:hover {
+    transform: scale(1.05);
+}
+.trust-badge.grade-a-plus { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+.trust-badge.grade-a { background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.25); }
+.trust-badge.grade-b-plus { background: rgba(59, 130, 246, 0.12); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.25); }
+.trust-badge.grade-b { background: rgba(59, 130, 246, 0.1); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.2); }
+.trust-badge.grade-c { background: rgba(251, 191, 36, 0.1); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.2); }
+.trust-badge.grade-d { background: rgba(239, 68, 68, 0.1); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.2); }
+.trust-badge.grade-f { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
+.trust-badge.grade-loading {
+    background: rgba(113, 113, 122, 0.1);
+    color: #71717a;
+    border: 1px solid rgba(113, 113, 122, 0.15);
+    cursor: default;
+}
+
+/* Trust Score Tooltip */
+.trust-tooltip {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    right: 0;
+    background: #1c1c20;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    min-width: 260px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    z-index: 50;
+    font-size: 0.75rem;
+    display: none;
+    animation: fadeSlideUp 0.2s ease;
+}
+.trust-badge:hover .trust-tooltip {
+    display: block;
+}
+.trust-tooltip-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.trust-tooltip-row:last-child { border-bottom: none; }
+.trust-tooltip-bar {
+    width: 60px;
+    height: 4px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 2px;
+    overflow: hidden;
+}
+.trust-tooltip-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.5s ease;
+}
+
+@keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Watchlist Bookmark Button --- */
+.watchlist-btn {
+    position: absolute;
+    top: 14px;
+    right: 90px;
+    background: rgba(9, 9, 11, 0.8);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 5;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+.watchlist-btn:hover {
+    border-color: var(--gold);
+    color: var(--gold);
+    background: rgba(245, 158, 11, 0.08);
+}
+.watchlist-btn.saved {
+    color: var(--gold);
+    background: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+/* Watchlist Panel */
+.watchlist-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    display: none;
+}
+.watchlist-panel.visible { display: block; }
+.watchlist-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+.watchlist-panel-header h3 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text);
+}
+.watchlist-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    background: rgba(0,0,0,0.2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 6px;
+    font-size: 0.8rem;
+    transition: all 0.15s ease;
+}
+.watchlist-item:hover {
+    border-color: var(--border-hover);
+    background: rgba(0,0,0,0.3);
+}
+.watchlist-item-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+}
+.watchlist-item-name {
+    font-weight: 600;
+    color: var(--accent);
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.watchlist-item-name:hover { text-decoration: underline; }
+.watchlist-item-stats {
+    display: flex;
+    gap: 10px;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+.watchlist-milestone {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    color: #34d399;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    animation: fadeSlideUp 0.3s ease;
+}
+
+/* --- Digest Generator Modal --- */
+.digest-preview {
+    background: #0f0f12;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    max-height: 400px;
+    overflow-y: auto;
+    font-size: 0.85rem;
+    line-height: 1.7;
+    color: var(--text);
+}
+.digest-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    justify-content: flex-end;
+}
+
+/* --- Live Star Stream Ticker --- */
+.star-ticker {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(9, 9, 11, 0.95);
+    border-top: 1px solid var(--border);
+    padding: 6px 16px;
+    display: none;
+    align-items: center;
+    gap: 16px;
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    z-index: 50;
+    overflow: hidden;
+    backdrop-filter: blur(8px);
+}
+.star-ticker.active { display: flex; }
+.star-ticker-content {
+    display: flex;
+    gap: 24px;
+    animation: ticker-scroll 30s linear infinite;
+    white-space: nowrap;
+}
+.star-event {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.star-event .star-icon {
+    color: var(--gold);
+}
+
+@keyframes ticker-scroll {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+}

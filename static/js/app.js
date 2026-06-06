@@ -1777,7 +1777,6 @@ async function loadGrowthChart() {
     }
 }
 
-// Fetch SQLite History Snapshots
 async function fetchHistory() {
     const container = $('historyTableContainer');
     if (!container) return;
@@ -1830,3 +1829,471 @@ async function fetchHistory() {
         container.innerHTML = `<p style="color: var(--red); font-size:0.85rem; padding: 20px;">Error loading history: ${e}</p>`;
     }
 }
+
+// ============================================================
+// SPRINT 1 FEATURES
+// ============================================================
+
+// --- 1. VELOCITY RADAR ---
+function calculateVelocity(repo) {
+    const starsPeriod = repo.stars_period || 0;
+    const starsTotal = repo.stargazers_count || repo.stars || 1;
+    const velocityPct = (starsPeriod / starsTotal) * 100;
+    
+    let trend = 'declining';
+    let label = '';
+    
+    if (velocityPct > 1) {
+        trend = 'rising';
+        label = `🚀 ${velocityPct.toFixed(1)}%`;
+    } else if (velocityPct > 0.1) {
+        trend = 'stable';
+        label = `📊 ${velocityPct.toFixed(1)}%`;
+    } else if (starsPeriod > 0) {
+        trend = 'stable';
+        label = `📊 ${velocityPct.toFixed(2)}%`;
+    } else {
+        trend = 'declining';
+        label = '—';
+    }
+    
+    return { trend, label, velocityPct };
+}
+
+function renderVelocityBadge(repo) {
+    const v = calculateVelocity(repo);
+    if (v.trend === 'declining' && v.label === '—') return '';
+    
+    const trendLabel = currentLang === 'ru' 
+        ? { rising: 'взлёт', stable: 'стабильно', declining: 'затухает' }
+        : { rising: 'rising', stable: 'stable', declining: 'fading' };
+    
+    return `<span class="velocity-badge ${v.trend}" title="${trendLabel[v.trend]}">
+        <span class="pulse-dot"></span>
+        ${v.label}
+    </span>`;
+}
+
+// --- 2. TRUST SCORE ---
+const trustScoreCache = {};
+
+async function fetchTrustScore(repoName) {
+    if (trustScoreCache[repoName]) return trustScoreCache[repoName];
+    
+    try {
+        const r = await fetch(`/api/repo/trust-score?repo=${encodeURIComponent(repoName)}`);
+        if (!r.ok) return null;
+        const data = await r.json();
+        trustScoreCache[repoName] = data;
+        return data;
+    } catch (e) {
+        console.warn('Trust score fetch failed for', repoName, e);
+        return null;
+    }
+}
+
+function gradeToClass(grade) {
+    if (!grade) return 'grade-loading';
+    const g = grade.replace('+', '-plus').toLowerCase();
+    return `grade-${g}`;
+}
+
+function renderTrustTooltip(data) {
+    if (!data || !data.breakdown) return '';
+    const bd = data.breakdown;
+    const rows = Object.entries(bd).map(([key, info]) => {
+        const pct = (info.score / info.max) * 100;
+        const color = pct >= 80 ? '#34d399' : pct >= 50 ? '#fbbf24' : '#f87171';
+        const label = key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ');
+        return `<div class="trust-tooltip-row">
+            <span style="color:var(--text-dim)">${label}</span>
+            <div style="display:flex;align-items:center;gap:6px;">
+                <div class="trust-tooltip-bar"><div class="trust-tooltip-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+                <span style="color:var(--text);font-weight:600;font-size:0.7rem;">${info.score}/${info.max}</span>
+            </div>
+        </div>`;
+    }).join('');
+    
+    return `<div class="trust-tooltip">
+        <div style="font-weight:700;margin-bottom:8px;color:var(--text);font-size:0.82rem;">Trust Score: ${data.trust_score}/100</div>
+        ${rows}
+    </div>`;
+}
+
+async function loadTrustBadge(repoName, badgeId) {
+    const badge = document.getElementById(badgeId);
+    if (!badge) return;
+    
+    const data = await fetchTrustScore(repoName);
+    if (!data) {
+        badge.style.display = 'none';
+        return;
+    }
+    
+    badge.className = `trust-badge ${gradeToClass(data.grade)}`;
+    badge.innerHTML = `🛡️ ${data.grade}${renderTrustTooltip(data)}`;
+}
+
+// --- 3. WATCHLIST SYSTEM ---
+function getWatchlist() {
+    try {
+        return JSON.parse(localStorage.getItem('github_trending_watchlist') || '[]');
+    } catch {
+        return [];
+    }
+}
+
+function saveWatchlist(list) {
+    localStorage.setItem('github_trending_watchlist', JSON.stringify(list));
+    updateWatchlistBadge();
+}
+
+function isInWatchlist(repoName) {
+    return getWatchlist().some(w => w.full_name === repoName);
+}
+
+function toggleWatchRepo(event, index) {
+    if (event) event.stopPropagation();
+    if (!lastFetchedRepos || !lastFetchedRepos[index]) return;
+    
+    const repo = lastFetchedRepos[index];
+    const repoName = repo.full_name || repo.name;
+    let wl = getWatchlist();
+    
+    if (isInWatchlist(repoName)) {
+        wl = wl.filter(w => w.full_name !== repoName);
+    } else {
+        wl.push({
+            full_name: repoName,
+            html_url: repo.html_url || `https://github.com/${repoName}`,
+            stars_at_save: repo.stargazers_count || repo.stars || 0,
+            language: repo.language || '',
+            saved_at: new Date().toISOString()
+        });
+    }
+    
+    saveWatchlist(wl);
+    
+    // Update button state
+    const btn = document.getElementById(`watchBtn_${index}`);
+    if (btn) {
+        btn.className = `watchlist-btn ${isInWatchlist(repoName) ? 'saved' : ''}`;
+        btn.innerHTML = isInWatchlist(repoName) ? '🔔' : '🔕';
+    }
+    
+    // Re-render watchlist panel if visible
+    if ($('watchlistPanel') && $('watchlistPanel').classList.contains('visible')) {
+        renderWatchlistPanel();
+    }
+}
+
+function updateWatchlistBadge() {
+    const badge = $('watchlistCountBadge');
+    const wl = getWatchlist();
+    if (badge) {
+        if (wl.length > 0) {
+            badge.style.display = 'inline-flex';
+            badge.textContent = wl.length;
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+}
+
+function toggleWatchlistPanel() {
+    const panel = $('watchlistPanel');
+    if (!panel) return;
+    
+    panel.classList.toggle('visible');
+    if (panel.classList.contains('visible')) {
+        renderWatchlistPanel();
+    }
+}
+
+function renderWatchlistPanel() {
+    const container = $('watchlistItems');
+    const milestonesContainer = $('watchlistMilestones');
+    if (!container) return;
+    
+    const wl = getWatchlist();
+    
+    if (wl.length === 0) {
+        container.innerHTML = `<p style="color:var(--text-muted); font-size:0.8rem; text-align:center; padding:12px;">${currentLang === 'ru' ? 'Список наблюдения пуст. Нажмите 🔕 на карточке репозитория, чтобы добавить.' : 'Watchlist is empty. Click 🔕 on a repo card to add.'}</p>`;
+        if (milestonesContainer) milestonesContainer.innerHTML = '';
+        return;
+    }
+    
+    // Check milestones for repos currently in view
+    let milestonesHtml = '';
+    if (lastFetchedRepos && milestonesContainer) {
+        wl.forEach(savedRepo => {
+            const currentRepo = lastFetchedRepos.find(r => (r.full_name || r.name) === savedRepo.full_name);
+            if (currentRepo) {
+                const currentStars = currentRepo.stargazers_count || currentRepo.stars || 0;
+                const savedStars = savedRepo.stars_at_save || 0;
+                const diff = currentStars - savedStars;
+                if (diff > 0) {
+                    milestonesHtml += `<div class="watchlist-milestone">
+                        🎉 <strong>${esc(savedRepo.full_name)}</strong> ${currentLang === 'ru' ? `набрал +${diff.toLocaleString()} ⭐ с момента добавления!` : `gained +${diff.toLocaleString()} ⭐ since you added it!`}
+                    </div>`;
+                }
+            }
+        });
+        milestonesContainer.innerHTML = milestonesHtml;
+    }
+    
+    container.innerHTML = wl.map(w => {
+        const date = new Date(w.saved_at).toLocaleDateString(currentLang === 'ru' ? 'ru-RU' : 'en-US');
+        return `<div class="watchlist-item">
+            <div class="watchlist-item-info">
+                <a class="watchlist-item-name" href="${w.html_url}" target="_blank">${esc(w.full_name)}</a>
+            </div>
+            <div class="watchlist-item-stats">
+                <span>⭐ ${(w.stars_at_save || 0).toLocaleString()}</span>
+                <span>${w.language || '?'}</span>
+                <span style="color:var(--text-muted)">${date}</span>
+                <button onclick="removeFromWatchlist('${esc(w.full_name)}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:0.75rem;padding:0 4px;" title="Remove">✕</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function removeFromWatchlist(repoName) {
+    let wl = getWatchlist();
+    wl = wl.filter(w => w.full_name !== repoName);
+    saveWatchlist(wl);
+    renderWatchlistPanel();
+    
+    // Update button on card if visible
+    if (lastFetchedRepos) {
+        lastFetchedRepos.forEach((r, i) => {
+            if ((r.full_name || r.name) === repoName) {
+                const btn = document.getElementById(`watchBtn_${i}`);
+                if (btn) {
+                    btn.className = 'watchlist-btn';
+                    btn.innerHTML = '🔕';
+                }
+            }
+        });
+    }
+}
+
+function clearWatchlist() {
+    if (!confirm(currentLang === 'ru' ? 'Очистить весь список наблюдения?' : 'Clear the entire watchlist?')) return;
+    saveWatchlist([]);
+    renderWatchlistPanel();
+    
+    // Reset all watchlist buttons on cards
+    document.querySelectorAll('.watchlist-btn').forEach(btn => {
+        btn.className = 'watchlist-btn';
+        btn.innerHTML = '🔕';
+    });
+}
+
+function exportWatchlist() {
+    const wl = getWatchlist();
+    if (wl.length === 0) return;
+    
+    const dataStr = JSON.stringify(wl, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `github_watchlist_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// --- 4. DIGEST GENERATOR ---
+let lastDigestMarkdown = '';
+
+function openDigestModal() {
+    $('digestModal').classList.add('open');
+}
+
+function closeDigestModal() {
+    $('digestModal').classList.remove('open');
+}
+
+async function generateDigest() {
+    const container = $('digestContent');
+    if (!container) return;
+    
+    if (!lastFetchedRepos || lastFetchedRepos.length === 0) {
+        container.innerHTML = `<p style="color:var(--red); text-align:center;">${currentLang === 'ru' ? 'Сначала загрузите репозитории.' : 'Load some repositories first.'}</p>`;
+        return;
+    }
+    
+    container.innerHTML = '<div class="loading"><div class="spinner"></div><p style="color:var(--text-muted);font-size:0.8rem;margin-top:8px;">Generating digest with AI...</p></div>';
+    
+    const top10 = [...lastFetchedRepos]
+        .sort((a, b) => (b.stargazers_count || 0) - (a.stargazers_count || 0))
+        .slice(0, 10);
+    
+    const repoList = top10.map(r => 
+        `- ${r.full_name || r.name} (${r.language || '?'}): ${r.description || 'No description'} [⭐ ${(r.stargazers_count || r.stars || 0).toLocaleString()}]`
+    ).join('\n');
+    
+    const query = currentLang === 'ru'
+        ? `Сгенерируй красивый еженедельный дайджест трендовых репозиториев GitHub в формате Markdown newsletter. Включи:\n\n1. Заголовок с датой (## 🔥 GitHub Trending Weekly — дата)\n2. Краткое вступление (1-2 предложения)\n3. Для каждого из топ-10 репозиториев: название со ссылкой, 2-3 предложения описания, язык, звёзды, почему стоит обратить внимание\n4. Раздел "Тренды недели" (какие технологии/темы доминируют)\n5. Заключение\n\nВот список репозиториев:\n${repoList}\n\nФормат: чистый Markdown, используй эмодзи, пиши компактно и информативно.`
+        : `Generate a beautiful weekly digest of trending GitHub repositories in Markdown newsletter format. Include:\n\n1. Title with date (## 🔥 GitHub Trending Weekly — date)\n2. Brief intro (1-2 sentences)\n3. For each of the top 10 repos: name with link, 2-3 sentence description, language, stars, why it's worth checking out\n4. "Trends of the Week" section (which technologies/topics dominate)\n5. Conclusion\n\nRepository list:\n${repoList}\n\nFormat: clean Markdown, use emojis, be concise and informative.`;
+    
+    const key = localStorage.getItem("gemini_api_key") || "";
+    const headers = { 'Content-Type': 'application/json' };
+    if (key) headers['X-Gemini-Key'] = key;
+    
+    try {
+        const r = await fetch('/api/ai/summarize', {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({
+                query: query,
+                repos: top10
+            })
+        });
+        const d = await r.json();
+        
+        if (d.error) {
+            container.innerHTML = `<p style="color:var(--red);text-align:center;">❌ ${esc(d.error)}</p>`;
+            if (d.error.includes("Missing GEMINI_API_KEY")) openApiKeyModal();
+            return;
+        }
+        
+        lastDigestMarkdown = d.summary || '';
+        container.innerHTML = renderMarkdown(lastDigestMarkdown);
+    } catch (e) {
+        container.innerHTML = `<p style="color:var(--red);text-align:center;">Error: ${e.message}</p>`;
+    }
+}
+
+function copyDigest() {
+    if (!lastDigestMarkdown) {
+        alert(currentLang === 'ru' ? 'Сначала сгенерируйте дайджест.' : 'Generate a digest first.');
+        return;
+    }
+    navigator.clipboard.writeText(lastDigestMarkdown).then(() => {
+        const btn = $('digestCopyBtn');
+        const orig = btn.textContent;
+        btn.textContent = '✅ Copied!';
+        setTimeout(() => btn.textContent = orig, 2000);
+    });
+}
+
+function downloadDigest() {
+    if (!lastDigestMarkdown) {
+        alert(currentLang === 'ru' ? 'Сначала сгенерируйте дайджест.' : 'Generate a digest first.');
+        return;
+    }
+    const blob = new Blob([lastDigestMarkdown], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `github_trending_digest_${new Date().toISOString().split('T')[0]}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// --- ENHANCED CARD RENDERING (Velocity + Watchlist + Trust Score) ---
+// Override the original card function to include new features
+const _originalCard = card;
+card = function(r, i, source) {
+    const n = r.full_name || 'unknown';
+    const u = r.html_url || 'https://github.com/' + n;
+    const d = r.description || T[currentLang].noDesc;
+    const s = (r.stargazers_count || 0).toLocaleString();
+    const f = (r.forks_count || 0).toLocaleString();
+    const l = r.language || '';
+    const lc = LANG_COLORS[l] || '#71717a';
+    const sp = r.stars_period || 0;
+    
+    let badge = '';
+    if (sp > 0) {
+        const dur = $('durationSelect').value;
+        const localizedLabel = T[currentLang].starsLabel[dur] || 'stars';
+        badge = `<span class="badge-hot">🔥 ${sp.toLocaleString()} ${localizedLabel}</span>`;
+    }
+    
+    let freshBadge = '';
+    const updatedAtStr = r.updated_at || r.pushed_at;
+    if (updatedAtStr) {
+        try {
+            const diffMs = new Date() - new Date(updatedAtStr);
+            const diffHours = diffMs / (1000 * 60 * 60);
+            if (diffHours <= 24) {
+                freshBadge = `<span class="badge-fresh">⚡ Active</span>`;
+            }
+        } catch (e) {}
+    } else if (source === 'trending' || sp > 0) {
+        freshBadge = `<span class="badge-fresh">⚡ Active</span>`;
+    }
+
+    // Velocity Badge
+    const velocityHtml = renderVelocityBadge(r);
+    
+    // Trust Score Badge (loads async)
+    const trustBadgeId = `trust_${i}`;
+    const trustBadgeHtml = `<span id="${trustBadgeId}" class="trust-badge grade-loading" style="font-size:0.6rem;">🛡️ ...</span>`;
+    
+    // Lazy-load trust score after render
+    setTimeout(() => loadTrustBadge(n, trustBadgeId), 300 + i * 150);
+
+    let badgesHtml = '';
+    if (badge || freshBadge || velocityHtml || trustBadgeHtml) {
+        badgesHtml = `<div class="badge-row" style="flex-wrap:wrap;gap:4px;">${badge} ${freshBadge} ${velocityHtml} ${trustBadgeHtml}</div>`;
+    }
+    
+    const bb = r.built_by || [];
+    const builtByAvatars = bb.length > 0 ?
+        `<div class="built-by">
+            ${bb.map(user => `<img class="avatar" src="https://github.com/${user}.png?size=40" title="${esc(user)}" alt="${esc(user)}">`).join('')}
+         </div>` : '';
+
+    const isChecked = selectedCompareRepos.find(x => x.full_name === n) ? 'checked' : '';
+    const compareCheckbox = `
+        <div class="compare-checkbox-wrapper" onclick="event.stopPropagation();">
+            <input type="checkbox" id="compare_chk_${i}" class="compare-checkbox" ${isChecked} onchange="onCompareCheckChange(this, ${i})">
+            <span>Compare</span>
+        </div>
+    `;
+    
+    // Watchlist button
+    const isSaved = isInWatchlist(n);
+    const watchlistBtn = `<button id="watchBtn_${i}" class="watchlist-btn ${isSaved ? 'saved' : ''}" onclick="toggleWatchRepo(event, ${i})" title="${isSaved ? 'Remove from Watchlist' : 'Add to Watchlist'}">${isSaved ? '🔔' : '🔕'}</button>`;
+
+    return `<div class="card" style="animation-delay:${i * 0.03}s;">
+        ${watchlistBtn}
+        ${compareCheckbox}
+        <div class="card-header" style="padding-right: 70px;">
+            <a class="card-name" href="${u}" target="_blank">${esc(n)}</a>
+            ${badgesHtml}
+        </div>
+        <p class="card-desc">${esc(d)}</p>
+        <div class="card-footer-row">
+            ${builtByAvatars}
+            <button class="btn-tweets" onclick="openRepoDetailsHub(event, ${i})">📊 Info & AI</button>
+        </div>
+        <div class="card-meta" style="margin-top: 14px;">
+            <span class="meta-item meta-stars">
+                <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z"/></svg>
+                ${s}
+            </span>
+            <span class="meta-item meta-forks">
+                <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M5 3.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm0 2.122a2.25 2.25 0 10-1.5 0v2.506a2.25 2.25 0 001.072 1.907l2.062 1.238a.75.75 0 10.772-1.285l-2.062-1.238a.75.75 0 01-.344-.636V5.372zM11.25 5a.75.75 0 100-1.5.75.75 0 000 1.5zM8.5 10.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm2.25-4.878v2.506a2.25 2.25 0 01-1.072 1.907l-2.062 1.238a.75.75 0 11-.772-1.285l2.062-1.238a.75.75 0 00.344-.636V5.372a2.25 2.25 0 111.5 0z"></path></svg>
+                ${f}
+            </span>
+            ${l ? `<span class="meta-item meta-lang"><span class="lang-dot" style="background:${lc}"></span> ${l}</span>` : ''}
+        </div>
+    </div>`;
+};
+
+// Initialize watchlist badge on load
+window.addEventListener('DOMContentLoaded', () => {
+    updateWatchlistBadge();
+    
+    // Close digest modal on outside click
+    window.addEventListener('click', e => {
+        const digestModal = $('digestModal');
+        if (e.target === digestModal) closeDigestModal();
+    });
+});
+

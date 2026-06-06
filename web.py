@@ -578,6 +578,342 @@ def api_ai_security():
         return jsonify({"error": str(e)}), 500
 
 
+def _compute_trust_score(repo_data, has_readme, has_ci, has_tests, has_license):
+    """Compute a trust score (0-100) for a GitHub repository with per-category breakdown."""
+    from datetime import datetime, timezone
+
+    breakdown = {}
+    score = 0
+
+    # 1. Commit Frequency / Freshness (20 pts) - use pushed_at
+    freshness_score = 0
+    freshness_detail = "No push data available"
+    pushed = repo_data.get('pushed_at', '')
+    if pushed:
+        try:
+            pushed_dt = datetime.fromisoformat(pushed.replace('Z', '+00:00'))
+            days_since = (datetime.now(timezone.utc) - pushed_dt).days
+            if days_since <= 7:
+                freshness_score = 20
+                freshness_detail = f"Last push {days_since} day(s) ago"
+            elif days_since <= 30:
+                freshness_score = 15
+                freshness_detail = f"Last push {days_since} days ago"
+            elif days_since <= 90:
+                freshness_score = 10
+                freshness_detail = f"Last push {days_since} days ago"
+            elif days_since <= 365:
+                freshness_score = 5
+                freshness_detail = f"Last push {days_since} days ago"
+            else:
+                freshness_detail = f"Stale — last push {days_since} days ago"
+        except Exception:
+            pass
+    score += freshness_score
+    breakdown["freshness"] = {"score": freshness_score, "max": 20, "detail": freshness_detail}
+
+    # 2. Contributors diversity (15 pts) - use forks as proxy
+    contributors_score = 0
+    forks = repo_data.get('forks_count', 0)
+    if forks >= 100:
+        contributors_score = 15
+        contributors_detail = "100+ forks"
+    elif forks >= 30:
+        contributors_score = 12
+        contributors_detail = "30+ forks"
+    elif forks >= 10:
+        contributors_score = 8
+        contributors_detail = "10+ forks"
+    elif forks >= 3:
+        contributors_score = 5
+        contributors_detail = "3+ forks"
+    elif forks >= 1:
+        contributors_score = 2
+        contributors_detail = f"{forks} fork(s)"
+    else:
+        contributors_detail = "No forks"
+    score += contributors_score
+    breakdown["contributors"] = {"score": contributors_score, "max": 15, "detail": contributors_detail}
+
+    # 3. Issue Response (15 pts) - use open_issues ratio relative to stars
+    issues_score = 0
+    stars = repo_data.get('stargazers_count', 0)
+    issues = repo_data.get('open_issues_count', 0)
+    if stars > 0:
+        ratio = issues / stars
+        if ratio < 0.05:
+            issues_score = 15
+            issues_detail = "Low issue ratio"
+        elif ratio < 0.1:
+            issues_score = 12
+            issues_detail = "Moderate issue ratio"
+        elif ratio < 0.2:
+            issues_score = 8
+            issues_detail = "Elevated issue ratio"
+        else:
+            issues_score = 4
+            issues_detail = "High issue ratio"
+    else:
+        issues_detail = "No stars to compute ratio"
+    score += issues_score
+    breakdown["issues"] = {"score": issues_score, "max": 15, "detail": issues_detail}
+
+    # 4. Has Tests (10 pts)
+    tests_score = 10 if has_tests else 0
+    tests_detail = "Test directory found" if has_tests else "No test directory detected"
+    score += tests_score
+    breakdown["tests"] = {"score": tests_score, "max": 10, "detail": tests_detail}
+
+    # 5. Has CI/CD (10 pts)
+    ci_score = 10 if has_ci else 0
+    ci_detail = "GitHub Actions found" if has_ci else "No CI/CD configuration detected"
+    score += ci_score
+    breakdown["ci_cd"] = {"score": ci_score, "max": 10, "detail": ci_detail}
+
+    # 6. License (10 pts)
+    license_score = 0
+    if has_license:
+        license_score = 10
+        license_name = has_license if isinstance(has_license, str) else "Present"
+        license_detail = license_name
+    else:
+        license_detail = "No license detected"
+    score += license_score
+    breakdown["license"] = {"score": license_score, "max": 10, "detail": license_detail}
+
+    # 7. Documentation quality (10 pts)
+    doc_score = 10 if has_readme else 0
+    doc_detail = "README.md present" if has_readme else "No README found"
+    score += doc_score
+    breakdown["documentation"] = {"score": doc_score, "max": 10, "detail": doc_detail}
+
+    # 8. Size & Maturity (10 pts) - watchers / subscribers
+    maturity_score = 0
+    watchers = repo_data.get('subscribers_count', repo_data.get('watchers_count', 0))
+    if watchers >= 100:
+        maturity_score = 10
+        maturity_detail = "100+ watchers"
+    elif watchers >= 30:
+        maturity_score = 7
+        maturity_detail = "30+ watchers"
+    elif watchers >= 10:
+        maturity_score = 4
+        maturity_detail = "10+ watchers"
+    elif watchers >= 1:
+        maturity_score = 2
+        maturity_detail = f"{watchers} watcher(s)"
+    else:
+        maturity_detail = "No watchers"
+    score += maturity_score
+    breakdown["maturity"] = {"score": maturity_score, "max": 10, "detail": maturity_detail}
+
+    return min(score, 100), breakdown
+
+
+def _score_to_grade(score: int) -> str:
+    """Map a trust score (0-100) to a letter grade."""
+    if score >= 90:
+        return "A+"
+    elif score >= 80:
+        return "A"
+    elif score >= 70:
+        return "B+"
+    elif score >= 60:
+        return "B"
+    elif score >= 50:
+        return "C"
+    elif score >= 40:
+        return "D"
+    else:
+        return "F"
+
+
+def _check_ci_exists(repo_name: str) -> bool:
+    """Check if a GitHub Actions CI workflow exists via lightweight HEAD requests."""
+    import requests
+    headers = {"User-Agent": "Mozilla/5.0"}
+    ci_filenames = ["ci.yml", "build.yml", "test.yml", "main.yml"]
+    for branch in ["main", "master"]:
+        for fname in ci_filenames:
+            try:
+                url = f"https://raw.githubusercontent.com/{repo_name}/{branch}/.github/workflows/{fname}"
+                r = requests.head(url, headers=headers, timeout=3, allow_redirects=True)
+                if r.status_code == 200:
+                    return True
+            except Exception:
+                continue
+    return False
+
+
+def _check_tests_exist(repo_name: str, token: str | None = None) -> bool:
+    """Check if a test directory exists using the GitHub API tree endpoint."""
+    import requests
+    headers = {"User-Agent": "Mozilla/5.0", "Accept": "application/vnd.github.v3+json"}
+    if token:
+        headers["Authorization"] = f"token {token}"
+    for branch in ["main", "master"]:
+        try:
+            url = f"https://api.github.com/repos/{repo_name}/git/trees/{branch}"
+            r = requests.get(url, headers=headers, timeout=5)
+            if r.status_code == 200:
+                tree = r.json().get("tree", [])
+                for item in tree:
+                    if item.get("type") == "tree" and item.get("path", "").lower() in ("tests", "test", "spec", "__tests__"):
+                        return True
+                # If we got a valid tree but no test dir, no need to try next branch
+                return False
+        except Exception:
+            continue
+    return False
+
+
+@app.route("/api/repo/trust-score")
+def api_repo_trust_score():
+    """Compute a Trust Score (0-100) for a GitHub repository."""
+    import requests as req_lib
+
+    repo = request.args.get("repo")
+    if not repo or "/" not in repo:
+        return jsonify({"error": "Missing or invalid 'repo' query parameter. Use format: owner/name"}), 400
+
+    token = os.environ.get("GITHUB_TOKEN")
+    headers = {"User-Agent": "Mozilla/5.0", "Accept": "application/vnd.github.v3+json"}
+    if token:
+        headers["Authorization"] = f"token {token}"
+
+    # Fetch repository metadata from GitHub API
+    try:
+        api_url = f"https://api.github.com/repos/{repo}"
+        resp = req_lib.get(api_url, headers=headers, timeout=10)
+        if resp.status_code == 404:
+            return jsonify({"error": f"Repository '{repo}' not found"}), 404
+        if resp.status_code == 403:
+            logger.warning("GitHub API rate limit hit for trust-score endpoint")
+            return jsonify({"error": "GitHub API rate limit exceeded. Try again later or set GITHUB_TOKEN."}), 429
+        if resp.status_code != 200:
+            return jsonify({"error": f"GitHub API returned status {resp.status_code}"}), 502
+        repo_data = resp.json()
+    except req_lib.exceptions.Timeout:
+        logger.error("Timeout fetching repo metadata for %s", repo)
+        return jsonify({"error": "Timeout fetching repository data from GitHub"}), 504
+    except Exception as e:
+        logger.error("Failed to fetch repo metadata for %s: %s", repo, e)
+        return jsonify({"error": str(e)}), 500
+
+    # Check signals in parallel-ish fashion (sequential but fast)
+    has_readme = bool(_fetch_readme(repo))
+    has_ci = _check_ci_exists(repo)
+    has_tests = _check_tests_exist(repo, token)
+
+    # License info from the API response
+    license_info = repo_data.get("license")
+    has_license = False
+    if license_info and isinstance(license_info, dict):
+        has_license = license_info.get("spdx_id") or license_info.get("name") or True
+
+    trust_score, breakdown = _compute_trust_score(repo_data, has_readme, has_ci, has_tests, has_license)
+    grade = _score_to_grade(trust_score)
+
+    logger.info("Trust score for %s: %d (%s)", repo, trust_score, grade)
+
+    return jsonify({
+        "repo": repo,
+        "trust_score": trust_score,
+        "grade": grade,
+        "breakdown": breakdown,
+    })
+
+
+@app.route("/api/repo/velocity")
+def api_repo_velocity():
+    """Compute star velocity for a GitHub repository."""
+    import requests as req_lib
+    from datetime import datetime, timezone, timedelta
+
+    repo = request.args.get("repo")
+    if not repo or "/" not in repo:
+        return jsonify({"error": "Missing or invalid 'repo' query parameter. Use format: owner/name"}), 400
+
+    token = os.environ.get("GITHUB_TOKEN")
+    headers = {"User-Agent": "Mozilla/5.0", "Accept": "application/vnd.github.v3+json"}
+    if token:
+        headers["Authorization"] = f"token {token}"
+
+    # Fetch repository metadata
+    try:
+        api_url = f"https://api.github.com/repos/{repo}"
+        resp = req_lib.get(api_url, headers=headers, timeout=10)
+        if resp.status_code == 404:
+            return jsonify({"error": f"Repository '{repo}' not found"}), 404
+        if resp.status_code == 403:
+            logger.warning("GitHub API rate limit hit for velocity endpoint")
+            return jsonify({"error": "GitHub API rate limit exceeded. Try again later or set GITHUB_TOKEN."}), 429
+        if resp.status_code != 200:
+            return jsonify({"error": f"GitHub API returned status {resp.status_code}"}), 502
+        repo_data = resp.json()
+    except req_lib.exceptions.Timeout:
+        logger.error("Timeout fetching repo metadata for velocity: %s", repo)
+        return jsonify({"error": "Timeout fetching repository data from GitHub"}), 504
+    except Exception as e:
+        logger.error("Failed to fetch repo metadata for velocity: %s: %s", repo, e)
+        return jsonify({"error": str(e)}), 500
+
+    stars_total = repo_data.get("stargazers_count", 0)
+
+    # Estimate recent stars using the stargazers API (last page method)
+    # Fetch the most recent stargazers with timestamps to estimate period activity
+    stars_period = 0
+    try:
+        star_headers = dict(headers)
+        star_headers["Accept"] = "application/vnd.github.v3.star+json"
+        # Get the last page of stargazers to find recent ones
+        star_url = f"https://api.github.com/repos/{repo}/stargazers?per_page=100&page=1"
+        if stars_total > 100:
+            # Jump to the last page to get recent stargazers
+            last_page = (stars_total // 100) + (1 if stars_total % 100 else 0)
+            star_url = f"https://api.github.com/repos/{repo}/stargazers?per_page=100&page={last_page}"
+
+        star_resp = req_lib.get(star_url, headers=star_headers, timeout=10)
+        if star_resp.status_code == 200:
+            stargazers = star_resp.json()
+            cutoff = datetime.now(timezone.utc) - timedelta(days=30)
+            for sg in stargazers:
+                starred_at = sg.get("starred_at", "")
+                if starred_at:
+                    try:
+                        dt = datetime.fromisoformat(starred_at.replace("Z", "+00:00"))
+                        if dt >= cutoff:
+                            stars_period += 1
+                    except Exception:
+                        continue
+    except Exception as e:
+        logger.warning("Failed to fetch stargazer timestamps for %s: %s", repo, e)
+
+    # Compute velocity percentage
+    if stars_total > 0:
+        velocity_pct = round((stars_period / stars_total) * 100, 2)
+    else:
+        velocity_pct = 0.0
+
+    # Determine trend direction
+    if velocity_pct > 1.0:
+        trend = "rising"
+    elif velocity_pct >= 0.1:
+        trend = "stable"
+    else:
+        trend = "declining"
+
+    logger.info("Velocity for %s: %d period stars, %.2f%% (%s)", repo, stars_period, velocity_pct, trend)
+
+    return jsonify({
+        "repo": repo,
+        "stars_total": stars_total,
+        "stars_period": stars_period,
+        "velocity_pct": velocity_pct,
+        "trend": trend,
+    })
+
+
 def run_server():
     """Start the server using Waitress for production-grade hosting."""
     from waitress import serve
