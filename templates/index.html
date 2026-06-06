@@ -688,6 +688,7 @@
     <button class="btn-refresh" id="btnRefresh" onclick="fetchRepos()">Refresh</button>
     <button class="btn-analytics" id="btnAdvancedToggle" onclick="toggleAdvancedFilters()">⚙️ Advanced</button>
     <button class="btn-analytics" id="btnAnalytics" onclick="toggleAnalytics()">📊 Analytics</button>
+    <button class="btn-analytics" id="btnHistory" onclick="toggleHistoryPanel()">📜 Archive</button>
 </div>
 
 <!-- Advanced Filters Panel -->
@@ -711,6 +712,20 @@
     <div style="display:flex; align-items:center; gap:8px; margin-top: 18px; min-width: 180px;">
         <input type="checkbox" id="advExcludeOrgCheckbox" onchange="fetchRepos()" style="cursor:pointer; width:16px; height:16px;">
         <span style="font-size:0.85rem; color:var(--text-dim); cursor:pointer;" id="advExcludeOrgLabel">Exclude Big Tech</span>
+    </div>
+</div>
+
+<!-- Historical Archive Panel -->
+<div id="historyPanel" style="display:none; max-width: 1200px; margin: -20px auto 30px; padding: 20px; background: rgba(22, 27, 34, 0.4); border: 1px solid var(--border); border-radius: 12px; backdrop-filter: blur(10px); animation: slideDown 0.3s ease; flex-direction: column; gap: 16px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px; width: 100%;">
+        <h3 style="margin:0; font-size:1.1rem; color:var(--blue);" id="historyTitleText">📜 Historical Snapshots (SQLite Archive)</h3>
+        <div style="display:flex; gap:10px; align-items:center; width:100%; max-width:400px;">
+            <input type="text" id="historySearchInput" placeholder="Search archive..." style="flex:1; padding: 10px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 0.85rem; outline: none; transition: border-color 0.3s;" oninput="fetchHistory()">
+            <button class="btn-refresh" onclick="fetchHistory()" style="margin-top:0; padding:10px 18px; font-size:0.85rem; border-radius:10px;">Search</button>
+        </div>
+    </div>
+    <div id="historyTableContainer" style="overflow-x:auto; max-height: 400px; width: 100%;">
+        <div class="loading"><div class="spinner"></div></div>
     </div>
 </div>
 
@@ -793,29 +808,84 @@
     Built with 🔥 GitHub Trending CLI
 </div>
 
-<!-- Twitter/X Mentions Modal -->
+<!-- Repository Details Hub Modal (replacing old tweetsModal) -->
 <div id="tweetsModal" class="modal">
-    <div class="modal-content">
+    <div class="modal-content" style="max-width: 800px; width: 90%; padding: 24px;">
         <span class="close-modal" onclick="closeModal()">&times;</span>
-        <h2 id="modalTitleText" style="font-size:1.5rem; font-weight:800; margin-bottom:5px;">💬 Twitter Mentions</h2>
-        <p id="modalSubtitle" style="color:var(--blue); font-weight:700; margin-bottom:20px; font-size:0.95rem;"></p>
-        <div id="modalTweets" style="max-height: 350px; overflow-y: auto; padding-right: 5px; margin-bottom: 20px;">
-            <div class="loading"><div class="spinner"></div></div>
+        <h2 id="modalTitleText" style="font-size:1.5rem; font-weight:800; margin-bottom:5px; display: flex; align-items: center; gap: 8px;">📊 Repo Details Hub</h2>
+        <p id="modalSubtitle" style="color:var(--blue); font-weight:700; margin-bottom:15px; font-size:0.95rem;"></p>
+        
+        <!-- Tab Bar -->
+        <div class="modal-tabs" style="display: flex; border-bottom: 1px solid var(--border); margin-bottom: 15px; gap: 4px; overflow-x: auto;">
+            <button class="modal-tab-btn active" id="tabBtnSummary" onclick="switchModalTab('summary')" style="padding: 10px 16px; background: transparent; border: none; border-bottom: 2px solid var(--blue); color: var(--blue); font-weight: 600; cursor: pointer; font-size: 0.85rem; outline: none; white-space: nowrap;">ℹ️ Summary</button>
+            <button class="modal-tab-btn" id="tabBtnDiscussions" onclick="switchModalTab('discussions')" style="padding: 10px 16px; background: transparent; border: none; border-bottom: 2px solid transparent; color: var(--text-dim); font-weight: 600; cursor: pointer; font-size: 0.85rem; outline: none; white-space: nowrap;">💬 Discussions</button>
+            <button class="modal-tab-btn" id="tabBtnSecurity" onclick="switchModalTab('security')" style="padding: 10px 16px; background: transparent; border: none; border-bottom: 2px solid transparent; color: var(--text-dim); font-weight: 600; cursor: pointer; font-size: 0.85rem; outline: none; white-space: nowrap;">🛡️ Security Audit</button>
+            <button class="modal-tab-btn" id="tabBtnGrowth" onclick="switchModalTab('growth')" style="padding: 10px 16px; background: transparent; border: none; border-bottom: 2px solid transparent; color: var(--text-dim); font-weight: 600; cursor: pointer; font-size: 0.85rem; outline: none; white-space: nowrap;">📈 Growth</button>
         </div>
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-top:20px; border-top:1px solid var(--border); padding-top:16px;">
-            <div style="display:flex; align-items:center; gap:8px; font-size:0.82rem; color:var(--text-dim);">
-                <span id="modalAltSearchText">Alt:</span>
-                <a id="modalGithubSearchLink" href="#" target="_blank" style="color:var(--blue); text-decoration:none;">GitHub</a> •
-                <a id="modalBlueskySearchLink" href="#" target="_blank" style="color:var(--blue); text-decoration:none;">Bluesky</a> •
-                <a id="modalGoogleSearchLink" href="#" target="_blank" style="color:var(--blue); text-decoration:none;">Google</a>
+
+        <!-- Tab Contents -->
+        <!-- 1. Summary Panel -->
+        <div id="tabContentSummary" class="tab-panel-content">
+            <div id="modalSummaryAiContent" style="max-height: 350px; overflow-y: auto; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.02); margin-bottom: 15px; font-size: 0.9rem; line-height: 1.5; color: var(--text); border: 1px solid var(--border);">
+                <div class="loading"><div class="spinner"></div></div>
             </div>
-            <div style="display:flex; gap:8px;">
-                <button id="modalAiOpinionBtn" onclick="analyzeSentimentForRepo()" style="background:rgba(139,92,246,0.1); border:1px solid rgba(139,92,246,0.2); color:#c084fc; padding: 10px 18px; border-radius:12px; font-size:0.85rem; font-weight:600; cursor:pointer; transition:all 0.2s;">🤖 AI Opinion</button>
-                <a id="modalTwitterLink" href="#" target="_blank" class="btn-refresh" style="display:inline-block; text-decoration:none; text-align:center; font-size:0.85rem; padding: 10px 18px;">Open in X/Twitter</a>
+        </div>
+
+        <!-- 2. Discussions Panel -->
+        <div id="tabContentDiscussions" class="tab-panel-content" style="display: none;">
+            <div id="modalDiscussionsContainer" style="max-height: 350px; overflow-y: auto; padding-right: 5px; display: flex; flex-direction: column; gap: 12px;">
+                <div class="loading"><div class="spinner"></div></div>
             </div>
+            <!-- Alt Search Links and Twitter Action -->
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-top:20px; border-top:1px solid var(--border); padding-top:16px;">
+                <div style="display:flex; align-items:center; gap:8px; font-size:0.82rem; color:var(--text-dim);">
+                    <span id="modalAltSearchText">Alt:</span>
+                    <a id="modalGithubSearchLink" href="#" target="_blank" style="color:var(--blue); text-decoration:none;">GitHub</a> •
+                    <a id="modalBlueskySearchLink" href="#" target="_blank" style="color:var(--blue); text-decoration:none;">Bluesky</a> •
+                    <a id="modalGoogleSearchLink" href="#" target="_blank" style="color:var(--blue); text-decoration:none;">Google</a>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <a id="modalTwitterLink" href="#" target="_blank" class="btn-refresh" style="display:inline-block; text-decoration:none; text-align:center; font-size:0.85rem; padding: 10px 18px; margin-top:0;">Open in X/Twitter</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Security Panel -->
+        <div id="tabContentSecurity" class="tab-panel-content" style="display: none;">
+            <div id="modalSecurityContainer" style="min-height: 200px; max-height: 350px; overflow-y: auto; border-radius: 8px; border: 1px solid var(--border); background: rgba(255,255,255,0.02); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; padding: 20px;">
+                <p style="color: var(--text-dim); text-align: center; font-size: 0.88rem; max-width: 500px;" id="securityIntroText">Run an automated AI audit of the repository's dependency manifest (package.json, Cargo.toml, requirements.txt, go.mod, etc.) to evaluate dependency risk and security health.</p>
+                <button class="btn-refresh" onclick="runSecurityAudit()" style="padding: 12px 24px; font-size: 0.9rem; font-weight: 600; cursor: pointer; margin-top: 0; background: linear-gradient(135deg, #10b981, #059669); border: none; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);" id="runSecurityAuditBtn">🔍 Run Security Audit</button>
+            </div>
+        </div>
+
+        <!-- 4. Growth Panel -->
+        <div id="tabContentGrowth" class="tab-panel-content" style="display: none;">
+            <div style="height: 280px; position: relative;">
+                <canvas id="growthChart"></canvas>
+            </div>
+            <p id="growthStatsDesc" style="font-size: 0.78rem; color: var(--text-dim); text-align: center; margin-top: 8px;">Historical tracking records star and hype velocity benchmarks over time.</p>
         </div>
     </div>
 </div>
+
+<!-- Floating Compare Bar -->
+<div id="compareBar" style="position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(22, 27, 34, 0.95); border: 1px solid var(--blue); box-shadow: 0 8px 32px rgba(96, 165, 250, 0.3); border-radius: 20px; padding: 12px 24px; display: none; align-items: center; gap: 16px; z-index: 100; backdrop-filter: blur(10px); border-radius: 12px;">
+    <span style="font-size: 0.9rem; font-weight: 600; color: var(--text);" id="compareBarText">Selected: 0 repos</span>
+    <button class="btn-refresh" onclick="runAiComparison()" style="padding: 8px 16px; font-size: 0.85rem; margin-top: 0; background: linear-gradient(135deg, #3b82f6, #1d4ed8); border: none;" id="compareBarBtn">⚔️ Compare with AI</button>
+    <button class="btn-retry" onclick="clearRepoCompare()" style="padding: 8px 16px; font-size: 0.85rem; margin-top: 0;" id="compareBarClearBtn">Clear</button>
+</div>
+
+<!-- Compare Results Modal -->
+<div id="compareModal" class="modal">
+    <div class="modal-content" style="max-width: 850px; width: 90%; padding: 24px;">
+        <span class="close-modal" onclick="closeCompareModal()">&times;</span>
+        <h2 id="compareModalTitle" style="font-size:1.5rem; font-weight:800; margin-bottom:15px; display: flex; align-items: center; gap: 8px;">⚔️ AI Side-by-Side Comparison</h2>
+        <div id="compareModalContent" style="max-height: 480px; overflow-y: auto; padding: 16px; border-radius: 8px; border: 1px solid var(--border); background: rgba(255,255,255,0.02); font-size: 0.9rem; line-height: 1.5; color: var(--text);">
+            <div class="loading"><div class="spinner"></div></div>
+        </div>
+    </div>
+</div>
+
 
 <!-- API Key Configuration Modal -->
 <div id="apiKeyModal" class="modal">
@@ -909,7 +979,7 @@ const T = {
         footer: 'Powered by <a href="https://docs.github.com/en/rest" target="_blank">GitHub API</a> • Built with 🔥 GitHub Trending CLI',
         noDesc: "No description",
         starsLabel: { day: "stars today", week: "stars this week", month: "stars this month", year: "stars this year" },
-        tweetsTitle: "Twitter/X Mentions",
+        tweetsTitle: "📊 Repo Details Hub",
         openTwitter: "Open in X/Twitter",
         simulated: "Simulated",
         noTweets: "No tweets found",
@@ -1000,7 +1070,7 @@ const T = {
         footer: 'Работает на <a href="https://docs.github.com/en/rest" target="_blank">GitHub API</a> • Создано с помощью 🔥 GitHub Trending CLI',
         noDesc: "Нет описания",
         starsLabel: { day: "звезд сегодня", week: "звезд на этой неделе", month: "звезд в этом месяце", year: "звезд в этом году" },
-        tweetsTitle: "Упоминания в Twitter/X",
+        tweetsTitle: "📊 Панель информации о проекте",
         openTwitter: "Открыть в X/Twitter",
         simulated: "Смоделировано",
         noTweets: "Упоминаний не найдено",
@@ -1162,7 +1232,16 @@ function applyLanguage() {
     $('modalTitleText').textContent = t.tweetsTitle;
     $('modalTwitterLink').textContent = t.openTwitter;
     $('modalAltSearchText').textContent = t.modalAltSearch;
-    $('modalAiOpinionBtn').textContent = t.modalAiOpinion;
+    
+    // Tab translations
+    if ($('tabBtnSummary')) $('tabBtnSummary').textContent = currentLang === 'ru' ? 'ℹ️ Обзор' : 'ℹ️ Summary';
+    if ($('tabBtnDiscussions')) $('tabBtnDiscussions').textContent = currentLang === 'ru' ? '💬 Обсуждения' : '💬 Discussions';
+    if ($('tabBtnSecurity')) $('tabBtnSecurity').textContent = currentLang === 'ru' ? '🛡️ Аудит ИИ' : '🛡️ Security Audit';
+    if ($('tabBtnGrowth')) $('tabBtnGrowth').textContent = currentLang === 'ru' ? '📈 Рост' : '📈 Growth';
+
+    // Archive translations
+    if ($('btnHistory')) $('btnHistory').textContent = currentLang === 'ru' ? '📜 Архив' : '📜 Archive';
+    if ($('historyTitleText')) $('historyTitleText').textContent = currentLang === 'ru' ? '📜 Архив трендов (SQLite)' : '📜 Historical Snapshots (SQLite)';
     
     // Analytics panel text elements
     $('btnAnalytics').textContent = t.analytics;
@@ -1655,9 +1734,17 @@ function card(r,i, source){
             ${bb.map(user=>`<img class="avatar" src="https://github.com/${user}.png?size=40" title="${esc(user)}" alt="${esc(user)}">`).join('')}
          </div>`:'';
 
-    const lang=l?`<span class="meta-item meta-lang"><span class="lang-dot" style="background:${lc}"></span>${esc(l)}</span>`:'';
-    return `<div class="card" style="animation-delay:${i*0.05}s">
-        <div class="card-header">
+    const isChecked = selectedCompareRepos.find(x => x.full_name === n) ? 'checked' : '';
+    const compareCheckbox = `
+        <div style="position: absolute; top: 12px; right: 12px; display: flex; align-items: center; gap: 6px; background: rgba(13, 17, 23, 0.7); padding: 4px 8px; border-radius: 8px; border: 1px solid var(--border); z-index: 5;" onclick="event.stopPropagation();">
+            <input type="checkbox" id="compare_chk_${i}" class="compare-checkbox" style="cursor: pointer; width: 13px; height: 13px; margin: 0;" ${isChecked} onchange="onCompareCheckChange(this, ${i})">
+            <span style="font-size: 0.65rem; color: var(--text-dim); font-weight: 600; cursor: default; user-select: none;">Compare</span>
+        </div>
+    `;
+
+    return `<div class="card" style="animation-delay:${i*0.05}s; position: relative;">
+        ${compareCheckbox}
+        <div class="card-header" style="padding-right: 80px;">
             <a class="card-name" href="${u}" target="_blank">${esc(n)}</a>
             ${badgesHtml}
         </div>
@@ -1665,8 +1752,7 @@ function card(r,i, source){
         <div class="card-footer-row">
             ${builtByAvatars}
             <div style="display:flex; gap: 6px;">
-                <button class="btn-tweets" style="background:rgba(139,92,246,0.1); border:1px solid rgba(139,92,246,0.2); color:#c084fc;" onclick="triggerRepoAi(event, ${i})">🤖 ${T[currentLang].aiButtonLabel}</button>
-                <button class="btn-tweets" onclick="openTweets('${esc(n)}')">💬 Tweets</button>
+                <button class="btn-tweets" style="background:rgba(139,92,246,0.1); border:1px solid rgba(139,92,246,0.2); color:#c084fc; font-weight: 600;" onclick="openRepoDetailsHub(event, ${i})">📊 Info & AI</button>
             </div>
         </div>
         <div class="card-meta" style="margin-top: 14px;">
@@ -2118,6 +2204,472 @@ function applyPresetQuery() {
     }
     
     fetchRepos();
+}
+
+let selectedCompareRepos = [];
+let currentModalTab = 'summary';
+let currentOpenRepoName = '';
+let currentOpenRepoIndex = -1;
+let growthChartInstance = null;
+let currentDetailsRepoObj = null;
+let historyVisible = false;
+
+function onCompareCheckChange(chk, index) {
+    if (!lastFetchedRepos || !lastFetchedRepos[index]) return;
+    const repoObj = lastFetchedRepos[index];
+    const fullName = repoObj.full_name || repoObj.name;
+    
+    if (chk.checked) {
+        if (selectedCompareRepos.length >= 3) {
+            alert(currentLang === 'ru' ? 'Максимум 3 репозитория для сравнения!' : 'Maximum of 3 repositories can be compared!');
+            chk.checked = false;
+            return;
+        }
+        if (!selectedCompareRepos.find(x => x.full_name === fullName)) {
+            selectedCompareRepos.push(repoObj);
+        }
+    } else {
+        selectedCompareRepos = selectedCompareRepos.filter(x => x.full_name !== fullName);
+    }
+    
+    updateCompareBar();
+}
+
+function updateCompareBar() {
+    const bar = $('compareBar');
+    const barText = $('compareBarText');
+    if (!bar || !barText) return;
+    
+    if (selectedCompareRepos.length > 0) {
+        bar.style.display = 'flex';
+        barText.textContent = currentLang === 'ru' 
+            ? `Выбрано: ${selectedCompareRepos.length}` 
+            : `Selected: ${selectedCompareRepos.length}`;
+    } else {
+        bar.style.display = 'none';
+    }
+}
+
+function clearRepoCompare() {
+    selectedCompareRepos = [];
+    document.querySelectorAll('.compare-checkbox').forEach(chk => chk.checked = false);
+    updateCompareBar();
+}
+
+async function runAiComparison() {
+    if (selectedCompareRepos.length < 2) {
+        alert(currentLang === 'ru' ? 'Выберите как минимум 2 репозитория для сравнения!' : 'Please select at least 2 repositories to compare!');
+        return;
+    }
+    
+    const modal = $('compareModal');
+    const container = $('compareModalContent');
+    if (!modal || !container) return;
+    
+    modal.classList.add('open');
+    container.innerHTML = '<div class="loading"><div class="spinner"></div><p style="color: var(--text-dim); font-size:0.85rem; margin-top:8px;">Generating side-by-side AI comparison with Gemini...</p></div>';
+    
+    const api_key = localStorage.getItem("gemini_api_key") || "";
+    const headers = { "Content-Type": "application/json" };
+    if (api_key) headers["X-Gemini-Key"] = api_key;
+    
+    try {
+        const r = await fetch('/api/ai/compare', {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({ repos: selectedCompareRepos })
+        });
+        const d = await r.json();
+        
+        if (d.error) {
+            container.innerHTML = `<p style="color: var(--red); font-size: 0.88rem; text-align: center;">❌ ${d.error}</p>`;
+            return;
+        }
+        
+        container.innerHTML = renderMarkdown(d.comparison);
+    } catch (e) {
+        container.innerHTML = `<p style="color: var(--red); font-size: 0.85rem;">Error loading comparison: ${e}</p>`;
+    }
+}
+
+function closeCompareModal() {
+    $('compareModal').classList.remove('open');
+}
+
+async function openRepoDetailsHub(event, index) {
+    if (event) event.stopPropagation();
+    if (!lastFetchedRepos || !lastFetchedRepos[index]) return;
+    
+    currentDetailsRepoObj = lastFetchedRepos[index];
+    currentOpenRepoName = currentDetailsRepoObj.full_name || currentDetailsRepoObj.name;
+    currentOpenRepoIndex = index;
+    
+    const modal = $('tweetsModal');
+    if (!modal) return;
+    
+    modal.classList.add('open');
+    
+    const subtitle = $('modalSubtitle');
+    if (subtitle) {
+        subtitle.innerHTML = `<a href="${currentDetailsRepoObj.html_url || 'https://github.com/'+currentOpenRepoName}" target="_blank" style="color: var(--blue); text-decoration: none;">${esc(currentOpenRepoName)}</a>`;
+    }
+    
+    // Clear security audit tab container to original state
+    const secContainer = $('modalSecurityContainer');
+    if (secContainer) {
+        secContainer.innerHTML = `
+            <p style="color: var(--text-dim); text-align: center; font-size: 0.88rem; max-width: 500px;" id="securityIntroText">${currentLang === 'ru' ? 'Запустите автоматический ИИ-аудит зависимостей проекта (package.json, Cargo.toml, requirements.txt, go.mod и др.) для оценки рисков и безопасности.' : 'Run an automated AI audit of the repository\'s dependency manifest (package.json, Cargo.toml, requirements.txt, go.mod, etc.) to evaluate dependency risk and security health.'}</p>
+            <button class="btn-refresh" onclick="runSecurityAudit()" style="padding: 12px 24px; font-size: 0.9rem; font-weight: 600; cursor: pointer; margin-top: 0; background: linear-gradient(135deg, #10b981, #059669); border: none; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);" id="runSecurityAuditBtn">🔍 Run Security Audit</button>
+        `;
+    }
+
+    // Switch to summary tab first
+    switchModalTab('summary');
+}
+
+function switchModalTab(tabId) {
+    currentModalTab = tabId;
+    
+    // Toggle active classes on tab buttons
+    document.querySelectorAll('.modal-tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+        btn.style.color = 'var(--text-dim)';
+        btn.style.borderColor = 'transparent';
+    });
+    
+    const activeBtn = $('tabBtn' + tabId.charAt(0).toUpperCase() + tabId.slice(1));
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+        activeBtn.style.color = 'var(--blue)';
+        activeBtn.style.borderColor = 'var(--blue)';
+    }
+
+    // Toggle active tab content panels
+    document.querySelectorAll('.tab-panel-content').forEach(panel => {
+        panel.style.display = 'none';
+    });
+    
+    const activePanel = $('tabContent' + tabId.charAt(0).toUpperCase() + tabId.slice(1));
+    if (activePanel) {
+        activePanel.style.display = 'block';
+    }
+
+    // Load content dynamically depending on the tab
+    if (tabId === 'summary') {
+        loadSummaryTab();
+    } else if (tabId === 'discussions') {
+        loadSocialDiscussions();
+    } else if (tabId === 'growth') {
+        loadGrowthChart();
+    }
+}
+
+async function loadSummaryTab() {
+    const summaryContent = $('modalSummaryAiContent');
+    if (!summaryContent) return;
+    
+    summaryContent.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+    
+    const api_key = localStorage.getItem("gemini_api_key") || "";
+    const headers = { "Content-Type": "application/json" };
+    if (api_key) headers["X-Gemini-Key"] = api_key;
+    
+    try {
+        const r = await fetch('/api/ai/summarize', {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({
+                name: currentDetailsRepoObj.full_name || currentDetailsRepoObj.name,
+                description: currentDetailsRepoObj.description,
+                language: currentDetailsRepoObj.language
+            })
+        });
+        const d = await r.json();
+        
+        if (d.error) {
+            summaryContent.innerHTML = `<p style="color: var(--red); font-size: 0.85rem;">${esc(d.error)}</p>`;
+            return;
+        }
+        
+        summaryContent.innerHTML = renderMarkdown(d.summary);
+    } catch (e) {
+        summaryContent.innerHTML = `<p style="color: var(--red); font-size: 0.85rem;">Error fetching summary: ${e}</p>`;
+    }
+}
+
+async function loadSocialDiscussions() {
+    const container = $('modalDiscussionsContainer');
+    if (!container) return;
+    
+    container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+    
+    try {
+        const repoName = currentOpenRepoName;
+        const r = await fetch(`/api/social/discussions?repo=${encodeURIComponent(repoName)}`);
+        const d = await r.json();
+        
+        let html = '';
+        
+        // Hacker News
+        html += `<h4 style="margin: 5px 0; color: #ff6600; font-size: 0.95rem; border-bottom: 1px solid rgba(255,102,0,0.2); padding-bottom: 4px;">🧡 Hacker News</h4>`;
+        if (d.hn && d.hn.length > 0) {
+            html += d.hn.map(item => `
+                <div style="padding: 8px 12px; background: rgba(255,102,0,0.04); border-left: 3px solid #ff6600; border-radius: 4px; margin-bottom: 8px; font-size: 0.85rem;">
+                    <a href="${item.url}" target="_blank" style="color: var(--text); font-weight: 600; text-decoration: none; display: block; margin-bottom: 4px;">${esc(item.title)}</a>
+                    <span style="color: var(--text-dim); font-size: 0.75rem;">⭐ ${item.score} pts • 💬 ${item.comments} comments • 📅 ${item.date}</span>
+                </div>
+            `).join('');
+        } else {
+            html += `<p style="font-size: 0.8rem; color: var(--text-dim); font-style: italic; margin-bottom: 12px;">${currentLang === 'ru' ? 'Обсуждений на Hacker News не найдено.' : 'No Hacker News discussions found.'}</p>`;
+        }
+        
+        // Reddit
+        html += `<h4 style="margin: 15px 0 5px; color: #ff4500; font-size: 0.95rem; border-bottom: 1px solid rgba(255,69,0,0.2); padding-bottom: 4px;">🤖 Reddit</h4>`;
+        if (d.reddit && d.reddit.length > 0) {
+            html += d.reddit.map(item => `
+                <div style="padding: 8px 12px; background: rgba(255,69,0,0.04); border-left: 3px solid #ff4500; border-radius: 4px; margin-bottom: 8px; font-size: 0.85rem;">
+                    <a href="${item.url}" target="_blank" style="color: var(--text); font-weight: 600; text-decoration: none; display: block; margin-bottom: 4px;">${esc(item.title)}</a>
+                    <span style="color: var(--text-dim); font-size: 0.75rem;">⬆️ ${item.score} upvotes • 💬 ${item.comments} comments • 📅 ${item.date}</span>
+                </div>
+            `).join('');
+        } else {
+            html += `<p style="font-size: 0.8rem; color: var(--text-dim); font-style: italic; margin-bottom: 12px;">${currentLang === 'ru' ? 'Постов на Reddit не найдено.' : 'No Reddit posts found.'}</p>`;
+        }
+        
+        // Twitter/X (Nitter)
+        html += `<h4 style="margin: 15px 0 5px; color: var(--blue); font-size: 0.95rem; border-bottom: 1px solid rgba(96,165,250,0.2); padding-bottom: 4px;">💬 Twitter Mentions</h4>`;
+        if (d.twitter && d.twitter.length > 0) {
+            html += d.twitter.map(t => `
+                <div style="padding: 8px 12px; background: rgba(96,165,250,0.03); border-left: 3px solid var(--blue); border-radius: 4px; margin-bottom: 8px; font-size: 0.85rem;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom: 4px;">
+                        <a href="${t.url}" target="_blank" style="color: var(--blue); font-weight: 600; text-decoration: none;">${esc(t.author)}</a>
+                        <span style="color: var(--text-dim); font-size: 0.72rem;">${esc(t.date)}</span>
+                    </div>
+                    <p style="margin: 0; color: var(--text); line-height: 1.4;">${esc(t.text)}</p>
+                </div>
+            `).join('');
+        } else {
+            html += `<p style="font-size: 0.8rem; color: var(--text-dim); font-style: italic;">${currentLang === 'ru' ? 'Упоминаний в Twitter не найдено.' : 'No Twitter mentions found.'}</p>`;
+        }
+        
+        container.innerHTML = html;
+        
+        // Update Alt links in the Discussions panel
+        $('modalTwitterLink').href = getTwitterUrl(repoName, true);
+        $('modalGithubSearchLink').href = `https://github.com/search?q=${encodeURIComponent(repoName)}&type=discussions`;
+        $('modalBlueskySearchLink').href = `https://bsky.app/search?q=${encodeURIComponent(repoName)}`;
+        $('modalGoogleSearchLink').href = `https://www.google.com/search?q=${encodeURIComponent(repoName + " github discussions reviews")}`;
+    } catch (e) {
+        container.innerHTML = `<p style="color: var(--red); font-size: 0.85rem;">Error loading discussions: ${e}</p>`;
+    }
+}
+
+async function runSecurityAudit() {
+    const container = $('modalSecurityContainer');
+    if (!container) return;
+    
+    container.innerHTML = '<div class="loading"><div class="spinner"></div><p style="color: var(--text-dim); font-size:0.85rem; margin-top:8px;">Analyzing manifest file with Gemini AI...</p></div>';
+    
+    const api_key = localStorage.getItem("gemini_api_key") || "";
+    const headers = { "Content-Type": "application/json" };
+    if (api_key) headers["X-Gemini-Key"] = api_key;
+    
+    try {
+        const repoName = currentOpenRepoName;
+        const r = await fetch('/api/ai/security', {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({ name: repoName })
+        });
+        const d = await r.json();
+        
+        if (d.error) {
+            container.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 20px;">
+                    <p style="color: var(--red); font-size: 0.88rem; text-align: center;">❌ ${d.error}</p>
+                    <button class="btn-retry" onclick="runSecurityAudit()" style="margin-top:0;">Try Again</button>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px dashed var(--border); padding-bottom: 10px; margin-bottom: 12px; width:100%;">
+                <span style="font-size: 0.8rem; color: var(--text-dim);">File audited: <code>${esc(d.file_found)}</code></span>
+                <span style="font-size: 0.8rem; font-weight: 700; color: #10b981; background: rgba(16,185,129,0.1); padding: 2px 8px; border-radius: 4px;">AI Audited</span>
+            </div>
+            <div style="font-size: 0.88rem; line-height: 1.5; color: var(--text); width: 100%; text-align: left;">
+                ${renderMarkdown(d.security_audit)}
+            </div>
+        `;
+    } catch (e) {
+        container.innerHTML = `<p style="color: var(--red); font-size: 0.85rem;">Error running audit: ${e}</p>`;
+    }
+}
+
+async function loadGrowthChart() {
+    const canvas = $('growthChart');
+    if (!canvas) return;
+    
+    // Destroy previous chart if exists
+    if (growthChartInstance) {
+        growthChartInstance.destroy();
+        growthChartInstance = null;
+    }
+    
+    const repoName = currentOpenRepoName;
+    try {
+        const r = await fetch(`/api/history/trends?repo=${encodeURIComponent(repoName)}`);
+        const d = await r.json();
+        
+        if (d.error || !d.trends || d.trends.length === 0) {
+            // No data yet, draw a placeholder
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#8b949e';
+            ctx.font = '14px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText(currentLang === 'ru' ? 'Нет исторических данных для этого репозитория.' : 'No historical tracking data available yet.', canvas.width / 2, canvas.height / 2);
+            return;
+        }
+        
+        const labels = d.trends.map(t => {
+            const date = new Date(t.scraped_at);
+            return date.toLocaleDateString(currentLang === 'ru' ? 'ru-RU' : 'en-US', {month: 'short', day: 'numeric', hour: '2-digit'});
+        });
+        const starsData = d.trends.map(t => t.stars);
+        const hypeData = d.trends.map(t => t.hype_score);
+        
+        growthChartInstance = new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Stars',
+                        data: starsData,
+                        borderColor: '#fbbf24',
+                        backgroundColor: 'rgba(251, 191, 36, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        yAxisID: 'yStars'
+                    },
+                    {
+                        label: 'Hype Score',
+                        data: hypeData,
+                        borderColor: '#60a5fa',
+                        backgroundColor: 'rgba(96, 165, 250, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        yAxisID: 'yHype'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#adbac7',
+                            font: { family: 'Inter', size: 11 }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#768390', font: { family: 'Inter', size: 9 } }
+                    },
+                    yStars: {
+                        position: 'left',
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#fbbf24', font: { family: 'Inter', size: 9 } },
+                        title: { display: true, text: 'Stars', color: '#fbbf24' }
+                    },
+                    yHype: {
+                        position: 'right',
+                        grid: { drawOnChartArea: false },
+                        ticks: { color: '#60a5fa', font: { family: 'Inter', size: 9 } },
+                        title: { display: true, text: 'Hype Score', color: '#60a5fa' }
+                    }
+                }
+            }
+        });
+    } catch (e) {
+        console.error("Failed to load growth chart", e);
+    }
+}
+
+function toggleHistoryPanel() {
+    const panel = $('historyPanel');
+    const btn = $('btnHistory');
+    if (!panel) return;
+    
+    historyVisible = !historyVisible;
+    if (historyVisible) {
+        panel.style.display = 'flex';
+        btn.style.background = 'rgba(96, 165, 250, 0.15)';
+        btn.style.color = 'var(--blue)';
+        fetchHistory();
+    } else {
+        panel.style.display = 'none';
+        btn.style.background = '';
+        btn.style.color = '';
+    }
+}
+
+async function fetchHistory() {
+    const container = $('historyTableContainer');
+    if (!container) return;
+    
+    const searchVal = $('historySearchInput') ? $('historySearchInput').value.trim() : '';
+    let url = '/api/history?limit=50';
+    if (searchVal) url += `&search=${encodeURIComponent(searchVal)}`;
+    
+    try {
+        const r = await fetch(url);
+        const d = await r.json();
+        
+        if (d.error || !d.history || d.history.length === 0) {
+            container.innerHTML = `<p style="color:var(--text-dim); text-align:center; padding: 20px;">${currentLang === 'ru' ? 'Архивная история пуста или ничего не найдено.' : 'Archive history is empty or no records match.'}</p>`;
+            return;
+        }
+        
+        let html = `
+            <table class="history-table" style="width:100%; border-collapse: collapse; font-size:0.85rem; text-align:left;">
+                <thead>
+                    <tr style="border-bottom: 2px solid var(--border); color: var(--text-dim);">
+                        <th style="padding: 10px;">Repository</th>
+                        <th style="padding: 10px;">Language</th>
+                        <th style="padding: 10px;">Stars</th>
+                        <th style="padding: 10px;">Forks</th>
+                        <th style="padding: 10px;">Hype Score</th>
+                        <th style="padding: 10px;">Archived At</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        d.history.forEach(item => {
+            const date = new Date(item.scraped_at).toLocaleString(currentLang === 'ru' ? 'ru-RU' : 'en-US');
+            html += `
+                <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 10px;"><a href="${item.html_url}" target="_blank" style="color: var(--blue); text-decoration:none; font-weight:600;">${esc(item.full_name)}</a></td>
+                    <td style="padding: 10px;">${esc(item.language || 'N/A')}</td>
+                    <td style="padding: 10px;">⭐ ${(item.stars || 0).toLocaleString()}</td>
+                    <td style="padding: 10px;">🍴 ${(item.forks || 0).toLocaleString()}</td>
+                    <td style="padding: 10px;">🔥 ${(item.hype_score || 0).toFixed(1)}</td>
+                    <td style="padding: 10px; color: var(--text-dim);">${date}</td>
+                </tr>
+            `;
+        });
+        
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    } catch (e) {
+        container.innerHTML = `<p style="color: var(--red); font-size:0.85rem; padding: 20px;">Error loading history: ${e}</p>`;
+    }
 }
 
 applyLanguage();

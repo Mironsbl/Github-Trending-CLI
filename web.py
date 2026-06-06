@@ -361,6 +361,220 @@ def api_trends():
     return jsonify({"trends": trends, "cached": False})
 
 
+def _fetch_github_file(repo_name: str, filename: str) -> str:
+    """Fetch a specific file from raw GitHub content (tries main, then master)."""
+    import requests
+    headers = {"User-Agent": "Mozilla/5.0"}
+    for branch in ["main", "master"]:
+        try:
+            url = f"https://raw.githubusercontent.com/{repo_name}/{branch}/{filename}"
+            r = requests.get(url, headers=headers, timeout=3)
+            if r.status_code == 200:
+                return r.text
+        except Exception:
+            continue
+    return ""
+
+
+@app.route("/api/history")
+def api_history():
+    """Retrieve trending repositories snapshots from SQLite db."""
+    import db
+    search = request.args.get("search") or None
+    limit = request.args.get("limit", "100")
+    try:
+        limit = int(limit)
+    except ValueError:
+        limit = 100
+    
+    try:
+        history = db.get_history(limit=limit, search_query=search)
+        return jsonify({"history": history, "count": len(history)})
+    except Exception as e:
+        logger.error("Failed to fetch history: %s", e)
+        return jsonify({"error": str(e), "history": [], "count": 0}), 500
+
+
+@app.route("/api/history/trends")
+def api_history_trends():
+    """Get stars and hype growth over time for a repository."""
+    import db
+    repo = request.args.get("repo")
+    if not repo:
+        return jsonify({"error": "Missing 'repo' query parameter"}), 400
+    try:
+        trends = db.get_trends_over_time(repo)
+        return jsonify({"repo": repo, "trends": trends})
+    except Exception as e:
+        logger.error("Failed to fetch historical trends for %s: %s", repo, e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/social/discussions")
+def api_social_discussions():
+    """Get Hacker News, Reddit, and Twitter discussions for a repository."""
+    import social
+    import twitter
+    repo = request.args.get("repo")
+    if not repo:
+        return jsonify({"error": "Missing 'repo' query parameter"}), 400
+
+    # Cache results so we don't spam endpoints
+    cache_key = f"social_disc_{repo.replace('/', '_')}"
+    cached = utils.read_cache("social", cache_key, 1, None, ttl=1800) # cache for 30m
+    if cached is not None:
+        return jsonify(cached)
+
+    try:
+        hn = social.search_hacker_news(repo)
+        reddit = social.search_reddit(repo)
+        
+        # Fallback query Nitter for tweets
+        repo_name_only = repo.split("/")[-1]
+        tweets = twitter.search_twitter_mentions(repo_name_only)
+        
+        data = {
+            "hn": hn,
+            "reddit": reddit,
+            "twitter": tweets
+        }
+        
+        # Write to cache
+        utils.write_cache(data, "social", cache_key, 1, None)
+        return jsonify(data)
+    except Exception as e:
+        logger.error("Failed to fetch social discussions: %s", e)
+        return jsonify({"error": str(e), "hn": [], "reddit": [], "twitter": []}), 500
+
+
+@app.route("/api/ai/compare", methods=["POST"])
+def api_ai_compare():
+    """AI side-by-side comparison of multiple repositories."""
+    import requests
+    data = request.json or {}
+    repos_list = data.get("repos") or []
+    if not repos_list or len(repos_list) < 2:
+        return jsonify({"error": "Please select at least 2 repositories to compare."}), 400
+    
+    api_key = os.environ.get("GEMINI_API_KEY") or request.headers.get("X-Gemini-Key")
+    if not api_key:
+        return jsonify({"error": "Missing GEMINI_API_KEY. Set it in the environment or provide it in settings."}), 400
+
+    # Gather info and readmes
+    comparison_context = ""
+    for r in repos_list[:3]: # Limit to 3 repos for context size
+        name = r.get("full_name") or r.get("name")
+        desc = r.get("description", "")
+        lang = r.get("language", "")
+        
+        readme = _fetch_readme(name)
+        if readme:
+            readme = readme[:8000] # Limit to 8k chars each
+            
+        comparison_context += f"### Repository: {name}\n"
+        comparison_context += f"Description: {desc}\n"
+        comparison_context += f"Primary Language: {lang}\n"
+        if readme:
+            comparison_context += f"README Snippet:\n{readme}\n"
+        comparison_context += "\n---\n\n"
+
+    prompt = (
+        "You are an expert software architect. Perform a side-by-side comparison of the following repositories in Russian.\n"
+        "1. Start with a markdown comparison table comparing: Primary Language, Target Audience, Key Feature, Complexity (Low/Medium/High), Active Maintenance (Yes/No/Unknown).\n"
+        "2. Detail the core differences in architecture, design approach, and use cases.\n"
+        "3. Provide clear recommendations: when to choose which repository.\n"
+        "Keep it highly technical, visually clean, and structured. Use emojis where appropriate."
+    )
+
+    contents = [
+        {"role": "user", "parts": [{"text": f"Here is the context of the repositories:\n\n{comparison_context}\n\n{prompt}"}]}
+    ]
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+    headers = {"Content-Type": "application/json"}
+    
+    try:
+        resp = requests.post(url, json={"contents": contents}, headers=headers, timeout=20)
+        if resp.status_code == 200:
+            result = resp.json()
+            text = result["candidates"][0]["content"]["parts"][0]["text"]
+            return jsonify({"comparison": text})
+        else:
+            return jsonify({"error": f"Gemini API returned status code {resp.status_code}: {resp.text}"}), resp.status_code
+    except Exception as e:
+        logger.error("Failed to generate AI comparison: %s", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/ai/security", methods=["POST"])
+def api_ai_security():
+    """Use Gemini to audit repository's dependency manifest and provide security assessment."""
+    import requests
+    data = request.json or {}
+    repo_name = data.get("name")
+    if not repo_name:
+        return jsonify({"error": "Missing 'name' in request body"}), 400
+
+    api_key = os.environ.get("GEMINI_API_KEY") or request.headers.get("X-Gemini-Key")
+    if not api_key:
+        return jsonify({"error": "Missing GEMINI_API_KEY. Set it in the environment or provide it in settings."}), 400
+
+    # Try to find a dependency file
+    manifest_files = [
+        "package.json",
+        "requirements.txt",
+        "Cargo.toml",
+        "go.mod",
+        "pyproject.toml",
+        "Gemfile",
+        "composer.json"
+    ]
+    
+    manifest_content = ""
+    found_file = ""
+    for filename in manifest_files:
+        content = _fetch_github_file(repo_name, filename)
+        if content:
+            manifest_content = content[:15000] # Limit size
+            found_file = filename
+            break
+            
+    if not manifest_content:
+        return jsonify({
+            "error": "No dependency manifest file (package.json, requirements.txt, Cargo.toml, go.mod etc.) found in the root of the repository."
+        }), 404
+
+    prompt = (
+        f"You are a security auditor. Analyze the following dependency file ({found_file}) for the repository '{repo_name}' in Russian.\n"
+        f"Manifest Content:\n```\n{manifest_content}\n```\n\n"
+        "Provide a structured audit:\n"
+        "1. **Security Health Score**: Give an overall grade (A+, A, B, C, D, F) and brief explanation.\n"
+        "2. **Core Dependencies**: List the major external packages used and what they do.\n"
+        "3. **Security Assessment / Risks**: Highlight any known security risks, overly broad permissions, deprecated packages, or potential attack vectors (like supply chain attacks, typo-squatting potential, or unsafe default setups).\n"
+        "4. **Recommendations**: Give actionable advice on how to secure this project's dependencies.\n"
+        "Format using markdown. Be professional, direct, and detailed."
+    )
+
+    contents = [
+        {"role": "user", "parts": [{"text": prompt}]}
+    ]
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+    headers = {"Content-Type": "application/json"}
+    
+    try:
+        resp = requests.post(url, json={"contents": contents}, headers=headers, timeout=20)
+        if resp.status_code == 200:
+            result = resp.json()
+            text = result["candidates"][0]["content"]["parts"][0]["text"]
+            return jsonify({"security_audit": text, "file_found": found_file})
+        else:
+            return jsonify({"error": f"Gemini API returned status code {resp.status_code}: {resp.text}"}), resp.status_code
+    except Exception as e:
+        logger.error("Failed to generate AI security audit: %s", e)
+        return jsonify({"error": str(e)}), 500
+
+
 def run_server():
     """Start the server using Waitress for production-grade hosting."""
     from waitress import serve

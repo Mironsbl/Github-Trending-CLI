@@ -80,10 +80,19 @@ def write_cache(
     limit: int,
     language: str | None,
 ) -> None:
-    """Persist repos to the on-disk cache."""
+    """Persist repos to the on-disk cache and save to SQLite history."""
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     path = CACHE_DIR / _cache_key(source, duration, limit, language)
     path.write_text(json.dumps(repos, ensure_ascii=False), encoding="utf-8")
+    
+    # Save to historical SQLite database
+    try:
+        import db
+        db.save_repos(repos)
+    except Exception as e:
+        # Don't break caching if db operations fail
+        import logging
+        logging.getLogger("github_trending_cli").warning("Failed to save history: %s", e)
 
 
 # ---------------------------------------------------------------------------
