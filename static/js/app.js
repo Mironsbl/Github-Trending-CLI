@@ -382,7 +382,7 @@ function applyLanguage() {
     // Tab translations
     if ($('tabBtnSummary')) $('tabBtnSummary').textContent = currentLang === 'ru' ? 'ℹ️ Обзор' : 'ℹ️ Summary';
     if ($('tabBtnDiscussions')) $('tabBtnDiscussions').textContent = currentLang === 'ru' ? '💬 Обсуждения' : '💬 Discussions';
-    if ($('tabBtnSecurity')) $('tabBtnSecurity').textContent = currentLang === 'ru' ? '🛡️ Аудит ИИ' : '🛡️ Security Audit';
+    if ($('tabBtnSimilar')) $('tabBtnSimilar').textContent = currentLang === 'ru' ? '🔍 Похожие' : '🔍 Similar';
     if ($('tabBtnGrowth')) $('tabBtnGrowth').textContent = currentLang === 'ru' ? '📈 Рост' : '📈 Growth';
 
     // Archive translations
@@ -1514,13 +1514,10 @@ async function openRepoDetailsHub(event, index) {
         subtitle.innerHTML = `<a href="${currentDetailsRepoObj.html_url || 'https://github.com/'+currentOpenRepoName}" target="_blank" style="color: var(--blue); text-decoration: none;">${esc(currentOpenRepoName)}</a>`;
     }
     
-    // Clear security audit tab container to original state
-    const secContainer = $('modalSecurityContainer');
-    if (secContainer) {
-        secContainer.innerHTML = `
-            <p style="color: var(--text-dim); text-align: center; font-size: 0.82rem; max-width: 500px;" id="securityIntroText">${currentLang === 'ru' ? 'Запустите автоматический ИИ-аудит зависимостей проекта (package.json, Cargo.toml, requirements.txt, go.mod и др.) для оценки рисков и безопасности.' : 'Run an automated AI audit of the repository\'s dependency manifest (package.json, Cargo.toml, requirements.txt, go.mod, etc.) to evaluate dependency risk and security health.'}</p>
-            <button class="btn btn-accent btn-sm" onclick="runSecurityAudit()" style="margin-top: 12px; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);" id="runSecurityAuditBtn">🔍 Run Security Audit</button>
-        `;
+    // Clear similar tab container to original loading state
+    const simContainer = $('modalSimilarContainer');
+    if (simContainer) {
+        simContainer.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
     }
 
     // Switch to summary tab first
@@ -1553,6 +1550,8 @@ function switchModalTab(tabId) {
         loadSocialDiscussions();
     } else if (tabId === 'growth') {
         loadGrowthChart();
+    } else if (tabId === 'similar') {
+        loadSimilarRepos();
     }
 }
 
@@ -2305,6 +2304,108 @@ function toggleSidebar() {
     if (sidebar) {
         sidebar.classList.toggle('open');
     }
+}
+
+// Load and render similar repositories
+async function loadSimilarRepos() {
+    const container = $('modalSimilarContainer');
+    if (!container) return;
+    
+    container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+    
+    try {
+        const repoName = currentOpenRepoName;
+        const language = currentDetailsRepoObj.language || '';
+        const description = currentDetailsRepoObj.description || '';
+        
+        let url = `/api/repo/similar?name=${encodeURIComponent(repoName)}&language=${encodeURIComponent(language)}&description=${encodeURIComponent(description)}`;
+        
+        const token = localStorage.getItem("github_token") || "";
+        if (token) url += `&token=${encodeURIComponent(token)}`;
+        
+        const r = await fetch(url);
+        const d = await r.json();
+        
+        if (d.error) {
+            container.innerHTML = `<p style="color: var(--red); font-size: 0.85rem;">Error loading similar repos: ${esc(d.error)}</p>`;
+            return;
+        }
+        
+        const repos = d.repos || [];
+        if (repos.length === 0) {
+            container.innerHTML = `<p style="text-align: center; color: var(--text-muted); font-style: italic; margin-top: 20px;">
+                ${currentLang === 'ru' ? 'Похожие репозитории не найдены.' : 'No similar repositories found.'}
+            </p>`;
+            return;
+        }
+        
+        window.currentSimilarRepos = repos;
+        
+        container.innerHTML = repos.map((repo, idx) => {
+            const stars = repo.stargazers_count || repo.stars || 0;
+            const forks = repo.forks_count || repo.forks || 0;
+            const lang = repo.language || 'Markdown';
+            const owner = repo.owner && repo.owner.login ? repo.owner.login : repo.name.split('/')[0];
+            const name = repo.name.includes('/') ? repo.name : `${owner}/${repo.name}`;
+            
+            return `
+                <div class="similar-repo-card" onclick="openSimilarRepoDetails(${idx})" style="padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: rgba(0,0,0,0.15); margin-bottom: 8px; cursor: pointer; transition: all 0.2s ease;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                        <h4 style="margin:0; font-size:0.88rem; color:var(--text); font-weight:600;">${esc(name)}</h4>
+                        <span class="repo-lang-badge" style="font-size:0.7rem; background:rgba(255,255,255,0.06); padding:2px 6px; border-radius:4px; color:var(--text-dim);">${esc(lang)}</span>
+                    </div>
+                    <p style="margin:0 0 8px 0; font-size:0.76rem; color:var(--text-muted); line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">
+                        ${esc(repo.description || 'No description available')}
+                    </p>
+                    <div style="display:flex; gap:12px; font-size:0.7rem; color:var(--text-dim);">
+                        <span>⭐ ${stars}</span>
+                        <span>🍴 ${forks}</span>
+                        <span style="margin-left:auto; color:var(--accent); font-weight:500;">${currentLang === 'ru' ? 'Подробнее' : 'View Details'} &rarr;</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        const styleId = 'similarRepoCardStyles';
+        if (!document.getElementById(styleId)) {
+            const style = document.createElement('style');
+            style.id = styleId;
+            style.innerHTML = `
+                .similar-repo-card:hover {
+                    background: rgba(99, 102, 241, 0.08) !important;
+                    border-color: rgba(99, 102, 241, 0.3) !important;
+                    transform: translateY(-1px);
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+    } catch (e) {
+        container.innerHTML = `<p style="color: var(--red); font-size: 0.85rem;">Error: ${e.message}</p>`;
+    }
+}
+
+function openSimilarRepoDetails(idx) {
+    if (!window.currentSimilarRepos || !window.currentSimilarRepos[idx]) return;
+    const repo = window.currentSimilarRepos[idx];
+    
+    currentDetailsRepoObj = repo;
+    currentOpenRepoName = repo.full_name || repo.name;
+    if (!currentOpenRepoName.includes('/') && repo.owner && repo.owner.login) {
+        currentOpenRepoName = `${repo.owner.login}/${repo.name}`;
+    }
+    
+    const subtitle = $('modalSubtitle');
+    if (subtitle) {
+        subtitle.innerHTML = `<a href="${currentDetailsRepoObj.html_url || 'https://github.com/'+currentOpenRepoName}" target="_blank" style="color: var(--blue); text-decoration: none;">${esc(currentOpenRepoName)}</a>`;
+    }
+    
+    const simContainer = $('modalSimilarContainer');
+    if (simContainer) {
+        simContainer.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+    }
+    
+    switchModalTab('summary');
 }
 
 // Initialize watchlist badge on load

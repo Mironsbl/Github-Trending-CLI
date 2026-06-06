@@ -46,17 +46,43 @@ def _calculate_hotness(r: dict) -> float:
         return float(stargazers * 0.1 + forks * 0.5)
 
 
-def _fetch_readme(repo_name: str) -> str:
-    """Fetch README.md from GitHub raw content (tries main, then master)."""
+def _fetch_readme(repo_name: str, token: str | None = None) -> str:
+    """Fetch README content using the GitHub API (with base64 decoding), fallback to raw content."""
     import requests
-    headers = {"User-Agent": "Mozilla/5.0"}
+    import base64
+    import os
+    
+    resolved_token = token or os.environ.get("GITHUB_TOKEN")
+    headers = {
+        "User-Agent": "Mozilla/5.0",
+        "Accept": "application/vnd.github+json"
+    }
+    if resolved_token:
+        headers["Authorization"] = f"Bearer {resolved_token}"
+        
+    url = f"https://api.github.com/repos/{repo_name}/readme"
+    try:
+        r = requests.get(url, headers=headers, timeout=4)
+        if r.status_code == 200:
+            data = r.json()
+            content = data.get("content", "")
+            encoding = data.get("encoding", "")
+            if encoding == "base64" and content:
+                try:
+                    return base64.b64decode(content).decode("utf-8", errors="ignore")
+                except Exception:
+                    pass
+    except Exception as e:
+        logger.warning("GitHub API readme fetch failed for %s: %s, trying raw fallback", repo_name, e)
+        
+    # Fallback to raw URLs
     for branch in ["main", "master"]:
-        for filename in ["README.md", "readme.md"]:
+        for filename in ["README.md", "readme.md", "README.markdown", "README.txt"]:
             try:
-                url = f"https://raw.githubusercontent.com/{repo_name}/{branch}/{filename}"
-                r = requests.get(url, headers=headers, timeout=3)
-                if r.status_code == 200:
-                    return r.text
+                raw_url = f"https://raw.githubusercontent.com/{repo_name}/{branch}/{filename}"
+                resp = requests.get(raw_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=3)
+                if resp.status_code == 200:
+                    return resp.text
             except Exception:
                 continue
     return ""
@@ -387,7 +413,25 @@ def api_trending():
             utils.write_cache(repos, source, duration, limit, language)
 
         if query and source == "trending":
-            repos = scraper.search_repos_by_query(query, repos)
+            filtered_repos = scraper.search_repos_by_query(query, repos)
+            if not filtered_repos:
+                logger.info("Scraper keyword filter returned 0 results. Falling back to Search API with active pushed filter.")
+                since_date = utils.get_since_date(duration)
+                fallback_query = f"{query} pushed:>{since_date}"
+                try:
+                    filtered_repos = github_api.fetch_trending_repos(
+                        duration=duration, limit=limit, language=language,
+                        topic=topic, sort=api_sort, min_stars=min_stars,
+                        max_stars=max_stars, min_forks=min_forks, token=token,
+                        query_keyword=fallback_query, author=author,
+                        exclude_org=exclude_org,
+                    )
+                    for r in filtered_repos:
+                        r["source"] = "api_fallback"
+                except Exception as ex:
+                    logger.warning("API fallback search failed: %s", ex)
+            repos = filtered_repos
+
 
         # Apply local filtering if search query is active
         if original_query and repos:
@@ -455,7 +499,26 @@ def api_ai_summarize():
 
     api_key = os.environ.get("GEMINI_API_KEY") or request.headers.get("X-Gemini-Key")
     if not api_key:
-        return jsonify({"error": "Missing GEMINI_API_KEY. Set it in the environment or provide it in settings."}), 400
+        if repo_name:
+            local_summary = (
+                f"🤖 **[Локальный ассистент]** (API-ключ Gemini не настроен)\n\n"
+                f"📦 **Репозиторий:** `{repo_name}`\n"
+                f"📝 **Описание:** {description or 'Нет описания'}\n"
+                f"💻 **Язык:** {language or 'Не указан'}\n\n"
+                f"💡 *Для получения подробного ИИ-анализа и ответов на вопросы, пожалуйста, добавьте ваш API-ключ Google Gemini в настройках (иконка шестерёнки).* "
+            )
+            return jsonify({"summary": local_summary})
+        elif repos:
+            local_summary = (
+                f"🤖 **[Локальный ассистент]** (API-ключ Gemini не настроен)\n\n"
+                f"Сейчас загружено {len(repos)} репозиториев. "
+                f"Вы можете искать по ним, фильтровать по языкам/звёздам и просматривать твиты.\n\n"
+                f"💡 *Добавьте ваш API-ключ Gemini в настройках, чтобы общаться с ИИ-ассистентом о деталях этих проектов.*"
+            )
+            return jsonify({"summary": local_summary})
+        else:
+            return jsonify({"error": "Missing GEMINI_API_KEY. Set it in the settings."}), 400
+
 
     # Fetch README.md if we are analyzing a specific repo
     readme_content = ""
@@ -1146,6 +1209,88 @@ def api_repo_velocity():
         "velocity_pct": velocity_pct,
         "trend": trend,
     })
+
+
+@app.route("/api/repo/similar")
+def api_repo_similar():
+    """Find similar repositories using topics, language, and name/description keywords."""
+    import re
+    import requests
+    repo_name = request.args.get("name")
+    if not repo_name:
+        return jsonify({"error": "Missing repo name"}), 400
+        
+    token = request.args.get("token") or os.environ.get("GITHUB_TOKEN")
+    
+    topics = request.args.getlist("topics")
+    language = request.args.get("language")
+    description = request.args.get("description")
+    
+    headers = {
+        "User-Agent": "Mozilla/5.0",
+        "Accept": "application/vnd.github+json"
+    }
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+        
+    # If the client did not pass some of the data, try fetching it from GitHub
+    if not topics or not language or not description:
+        try:
+            r = requests.get(f"https://api.github.com/repos/{repo_name}", headers=headers, timeout=5)
+            if r.status_code == 200:
+                data = r.json()
+                if not topics:
+                    topics = data.get("topics", [])
+                if not language:
+                    language = data.get("language")
+                if not description:
+                    description = data.get("description") or ""
+        except Exception as e:
+            logger.warning("Failed to fetch repo details for similarity: %s", e)
+            
+    # Build a search query for similar repos
+    query_parts = []
+    
+    # Exclude original repo
+    query_parts.append(f"-repo:{repo_name}")
+    
+    if language:
+        query_parts.append(f"language:{language}")
+        
+    # Add topics
+    if topics:
+        for t in topics[:3]:
+            query_parts.append(f"topic:{t}")
+            
+    # If we don't have topics, we extract key terms from the repository name or description
+    if not topics:
+        name_parts = re.split(r'[-_\s]+', repo_name.split("/")[-1])
+        name_terms = [p.lower() for p in name_parts if len(p) > 2 and p.lower() not in ["git", "github"]]
+        if name_terms:
+            query_parts.append(name_terms[0]) # Use the first term for high precision
+        elif description:
+            desc_words = re.findall(r'\b[a-zA-Z]{3,}\b', description)
+            common_words = {"the", "and", "for", "with", "this", "that", "from", "your", "will", "from", "github", "repository", "code"}
+            keywords = [w.lower() for w in desc_words if w.lower() not in common_words]
+            if keywords:
+                query_parts.append(keywords[0]) # Use the first keyword
+                
+    search_query = " ".join(query_parts)
+    search_query += " stars:>=5"
+    
+    logger.info("Finding repositories similar to '%s' with query '%s'", repo_name, search_query)
+    
+    try:
+        repos = github_api.fetch_trending_repos(
+            duration="month",
+            limit=10,
+            query_keyword=search_query,
+            token=token
+        )
+        return jsonify({"repos": repos, "query": search_query})
+    except Exception as e:
+        logger.error("Failed to fetch similar repositories: %s", e)
+        return jsonify({"error": str(e), "repos": []}), 500
 
 
 def run_server():

@@ -397,7 +397,7 @@
         <div class="modal-tabs">
             <button class="modal-tab-btn active" id="tabBtnSummary" onclick="switchModalTab('summary')">ℹ️ Summary</button>
             <button class="modal-tab-btn" id="tabBtnDiscussions" onclick="switchModalTab('discussions')">💬 Discussions</button>
-            <button class="modal-tab-btn" id="tabBtnSecurity" onclick="switchModalTab('security')">🛡️ Security Audit</button>
+            <button class="modal-tab-btn" id="tabBtnSimilar" onclick="switchModalTab('similar')">🔍 Similar</button>
             <button class="modal-tab-btn" id="tabBtnGrowth" onclick="switchModalTab('growth')">📈 Growth</button>
         </div>
 
@@ -427,9 +427,9 @@
             </div>
         </div>
 
-        <!-- Tab 3: Security Manifest Audit -->
-        <div id="tabContentSecurity" class="tab-panel-content" style="display: none;">
-            <div id="modalSecurityContainer" style="min-height: 220px; max-height: 380px; overflow-y: auto; border-radius: 8px; border: 1px solid var(--border); background: rgba(0,0,0,0.15); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
+        <!-- Tab 3: Similar Repositories -->
+        <div id="tabContentSimilar" class="tab-panel-content" style="display: none;">
+            <div id="modalSimilarContainer" style="max-height: 380px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px;">
                 <!-- Filled dynamically -->
             </div>
         </div>
