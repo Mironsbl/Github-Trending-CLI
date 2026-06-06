@@ -404,10 +404,17 @@
         <!-- Dynamic Tab Contents -->
         <!-- Tab 1: Summary -->
         <div id="tabContentSummary" class="tab-panel-content">
-            <div id="modalSummaryAiContent" style="max-height: 380px; overflow-y: auto; padding: 16px; border-radius: 8px; background: rgba(0,0,0,0.15); font-size: 0.85rem; border: 1px solid var(--border);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span style="font-size: 0.8rem; color: var(--text-dim);" id="modalSummaryHeaderTitle">AI Repository Summary & Dev Guide</span>
+                <button class="btn btn-sm btn-accent" id="btnGenDevPrompt" onclick="generateDevPrompt()" style="font-size: 0.75rem; padding: 6px 12px; gap: 4px; box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2); height: 28px; line-height: 1;">
+                    📝 Generate Dev Prompt
+                </button>
+            </div>
+            <div id="modalSummaryAiContent" style="max-height: 360px; overflow-y: auto; padding: 16px; border-radius: 8px; background: rgba(0,0,0,0.15); font-size: 0.85rem; border: 1px solid var(--border);">
                 <div class="loading"><div class="spinner"></div></div>
             </div>
         </div>
+
 
         <!-- Tab 2: Discussions -->
         <div id="tabContentDiscussions" class="tab-panel-content" style="display: none;">
