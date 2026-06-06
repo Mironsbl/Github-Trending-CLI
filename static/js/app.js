@@ -759,7 +759,7 @@ async function fetchRepos() {
         p.set('topic', 'security');
         if (!p.has('query')) p.set('query', '"exploit poc" OR "redteam tool" OR "vulnerability scanner" OR cve-202 OR rce-poc');
     } else if (preset === 'bypasses') {
-        if (!p.has('query')) p.set('query', '"av bypass" OR "edr bypass" OR "waf evasion" OR "sandbox escape" OR unhooking OR lpe-poc OR amsi-bypass');
+        if (!p.has('query')) p.set('query', '"av bypass" OR "edr bypass" OR "waf evasion" OR "sandbox escape" OR unhooking OR lpe-poc');
         // Target obscure/hidden bypasses by limiting star count range
         p.set('min_stars', 5);
         if (!maxStarsVal) p.set('max_stars', 800);
@@ -1395,7 +1395,7 @@ function applyPresetQuery(presetValue) {
     } else if (preset === 'security') {
         searchInput.value = '"exploit poc" OR "redteam tool" OR "vulnerability scanner" OR cve-202 OR rce-poc';
     } else if (preset === 'bypasses') {
-        searchInput.value = '"av bypass" OR "edr bypass" OR "waf evasion" OR "sandbox escape" OR unhooking OR lpe-poc OR amsi-bypass';
+        searchInput.value = '"av bypass" OR "edr bypass" OR "waf evasion" OR "sandbox escape" OR unhooking OR lpe-poc';
         if (maxStarsInput) maxStarsInput.value = '800';
     } else if (preset === 'hidden') {
         searchInput.value = 'experimental OR undocumented OR "zero-day" OR shellcode OR payload';
@@ -2300,14 +2300,27 @@ card = function(r, i, source) {
     </div>`;
 };
 
+function toggleSidebar() {
+    const sidebar = document.querySelector('.sidebar-filters');
+    if (sidebar) {
+        sidebar.classList.toggle('open');
+    }
+}
+
 // Initialize watchlist badge on load
 window.addEventListener('DOMContentLoaded', () => {
     updateWatchlistBadge();
     
-    // Close digest modal on outside click
+    // Close digest modal and sidebar on outside click
     window.addEventListener('click', e => {
         const digestModal = $('digestModal');
         if (e.target === digestModal) closeDigestModal();
+        
+        const sidebar = document.querySelector('.sidebar-filters');
+        const toggleBtn = $('btnSidebarToggle');
+        if (sidebar && sidebar.classList.contains('open') && !sidebar.contains(e.target) && (!toggleBtn || !toggleBtn.contains(e.target))) {
+            sidebar.classList.remove('open');
+        }
     });
 });
 

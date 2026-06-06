@@ -78,10 +78,7 @@ def fetch_trending_repos(
     if min_forks is not None and min_forks > 0:
         query += f" forks:>={min_forks}"
 
-    if exclude_org:
-        big_orgs = ["google", "microsoft", "facebook", "meta", "apple", "amazon", "netflix", "apache", "github", "hashicorp", "aws", "vercel", "cloudflare", "kubernetes", "docker", "elastic", "mozilla", "canonical", "oracle"]
-        for org in big_orgs:
-            query += f" -org:{org}"
+    # Note: exclude_org is now filtered locally from the response items below to keep search query under 256 characters.
 
     # Resolve token: explicit arg → env var → unauthenticated
     resolved_token = token or os.environ.get("GITHUB_TOKEN")
@@ -144,6 +141,18 @@ def fetch_trending_repos(
             if not items:
                 break
             
+            if exclude_org:
+                big_orgs = {"google", "microsoft", "facebook", "meta", "apple", "amazon", "netflix", "apache", "github", "hashicorp", "aws", "vercel", "cloudflare", "kubernetes", "docker", "elastic", "mozilla", "canonical", "oracle"}
+                filtered_items = []
+                for item in items:
+                    owner = item.get("owner")
+                    owner_name = ""
+                    if owner and isinstance(owner, dict):
+                        owner_name = (owner.get("login") or "").lower()
+                    if owner_name not in big_orgs:
+                        filtered_items.append(item)
+                items = filtered_items
+                
             repos.extend(items)
             page += 1
     

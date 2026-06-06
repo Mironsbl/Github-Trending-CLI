@@ -66,80 +66,115 @@ import re
 def expand_query(query: str) -> str:
     if not query:
         return ""
-    
-    # Lowercase for mapping
-    query_lower = query.lower().strip()
-    
-    # 1. Check for exact phrase matches first
-    exact_phrases = {
-        "обход edr": 'in:name,description "edr bypass" OR in:name,description "bypass edr" OR in:name,description "edr evasion" OR in:name,description unhooking',
-        "обход av": 'in:name,description "av bypass" OR in:name,description "bypass av" OR in:name,description "av evasion"',
-        "обход waf": 'in:name,description "waf bypass" OR in:name,description "bypass waf" OR in:name,description "waf evasion"',
-        "обход песочницы": 'in:name,description "sandbox escape" OR in:name,description "sandbox bypass" OR in:name,description "vm detection"',
-        "edr bypass": 'in:name,description "edr bypass" OR in:name,description "bypass edr" OR in:name,description "edr evasion" OR in:name,description unhooking',
-        "av bypass": 'in:name,description "av bypass" OR in:name,description "bypass av" OR in:name,description "av evasion"',
-        "waf bypass": 'in:name,description "waf bypass" OR in:name,description "bypass waf" OR in:name,description "waf evasion"',
-        "sandbox escape": 'in:name,description "sandbox escape" OR in:name,description "sandbox bypass" OR in:name,description "vm detection"',
-        "шаблоны обходы и взломы": 'in:name,description exploit template OR in:name,description bypass template OR in:name,description hack template',
-        "шаблоны обходы взломы": 'in:name,description exploit template OR in:name,description bypass template OR in:name,description hack template',
-    }
-    
-    if query_lower in exact_phrases:
-        return exact_phrases[query_lower]
+        
+    def _expand(q: str) -> str:
+        if not q:
+            return ""
+        
+        # Lowercase for mapping
+        q_lower = q.lower().strip()
+        
+        # 1. Check for exact phrase matches first
+        exact_phrases = {
+            "обход edr": 'in:name,description "edr bypass" OR in:name,description "bypass edr" OR in:name,description "edr evasion" OR in:name,description unhooking',
+            "обход av": 'in:name,description "av bypass" OR in:name,description "bypass av" OR in:name,description "av evasion"',
+            "обход waf": 'in:name,description "waf bypass" OR in:name,description "bypass waf" OR in:name,description "waf evasion"',
+            "обход песочницы": 'in:name,description "sandbox escape" OR in:name,description "sandbox bypass" OR in:name,description "vm detection"',
+            "edr bypass": 'in:name,description "edr bypass" OR in:name,description "bypass edr" OR in:name,description "edr evasion" OR in:name,description unhooking',
+            "av bypass": 'in:name,description "av bypass" OR in:name,description "bypass av" OR in:name,description "av evasion"',
+            "waf bypass": 'in:name,description "waf bypass" OR in:name,description "bypass waf" OR in:name,description "waf evasion"',
+            "sandbox escape": 'in:name,description "sandbox escape" OR in:name,description "sandbox bypass" OR in:name,description "vm detection"',
+            "шаблоны обходы и взломы": 'in:name,description exploit template OR in:name,description bypass template OR in:name,description hack template',
+            "шаблоны обходы взломы": 'in:name,description exploit template OR in:name,description bypass template OR in:name,description hack template',
+        }
+        
+        if q_lower in exact_phrases:
+            return exact_phrases[q_lower]
 
-    # 2. Tokenize the query
-    tokens = re.findall(r'(?:[^\s"]+|"[^"]*")+', query_lower)
-    
-    word_map = {
-        "шаблон": "template",
-        "шаблоны": "template",
-        "обход": "bypass",
-        "обходы": "bypass",
-        "взлом": "exploit",
-        "взломы": "exploit",
-        "уязвимость": "vulnerability",
-        "уязвимости": "vulnerability",
-        "загрузчик": "loader",
-        "инжектор": "injector",
-        "инжекция": "inject",
-        "шеллкод": "shellcode",
-        "пейлоад": "payload",
-        "малварь": "malware",
-        "руткит": "rootkit",
-        "бэкдор": "backdoor",
-        "шифровальщик": "ransomware",
-        "криптор": "crypter",
-        "обфускатор": "obfuscator",
-        "стилер": "stealer",
-        "клиппер": "clipper",
-        "майнер": "miner",
-        "сканер": "scanner",
-        "фишинг": "phishing",
-        "скрытый": "stealth",
-        "обнаружение": "detection",
-        "сеть": "network",
-        "прокси": "proxy",
-        "туннель": "tunnel",
-    }
-    
-    stop_words = {"и", "в", "на", "для", "под", "с", "a", "or", "and", "the", "of", "to", "in", "for", "with", "by"}
-    
-    new_tokens = []
-    
-    for token in tokens:
-        clean_token = token.strip('"').lower()
-        if clean_token in stop_words:
-            continue
-            
-        if clean_token in word_map:
-            new_tokens.append(word_map[clean_token])
+        # 2. Check if the query contains explicit OR/ИЛИ operator
+        if " or " in f" {q_lower} " or " или " in f" {q_lower} ":
+            parts = re.split(r'\s+(?:or|или)\s+', q, flags=re.IGNORECASE)
+            expanded_parts = []
+            for part in parts:
+                part_expanded = _expand(part.strip())
+                if part_expanded:
+                    expanded_parts.append(part_expanded)
+            if expanded_parts:
+                flat_parts = []
+                for p in expanded_parts:
+                    for sub in p.split(" OR "):
+                        sub_stripped = sub.strip()
+                        if sub_stripped and sub_stripped not in flat_parts:
+                            flat_parts.append(sub_stripped)
+                return " OR ".join(flat_parts)
+
+        # 3. Tokenize the query
+        tokens = re.findall(r'(?:[^\s"]+|"[^"]*")+', q)
+        
+        word_map = {
+            "шаблон": "template",
+            "шаблоны": "template",
+            "обход": "bypass",
+            "обходы": "bypass",
+            "взлом": "exploit",
+            "взломы": "exploit",
+            "уязвимость": "vulnerability",
+            "уязвимости": "vulnerability",
+            "загрузчик": "loader",
+            "инжектор": "injector",
+            "инжекция": "inject",
+            "шеллкод": "shellcode",
+            "пейлоад": "payload",
+            "малварь": "malware",
+            "руткит": "rootkit",
+            "бэкдор": "backdoor",
+            "шифровальщик": "ransomware",
+            "криптор": "crypter",
+            "обфускатор": "obfuscator",
+            "стилер": "stealer",
+            "клиппер": "clipper",
+            "майнер": "miner",
+            "сканер": "scanner",
+            "фишинг": "phishing",
+            "скрытый": "stealth",
+            "обнаружение": "detection",
+            "сеть": "network",
+            "прокси": "proxy",
+            "туннель": "tunnel",
+        }
+        
+        russian_stop_words = {"и", "в", "на", "для", "под", "с", "а", "или", "но", "о", "об", "обо", "из", "от", "до", "без"}
+        
+        new_tokens = []
+        
+        for token in tokens:
+            clean_token = token.strip('"').lower()
+            if clean_token in russian_stop_words:
+                continue
+                
+            if clean_token in word_map:
+                new_tokens.append(word_map[clean_token])
+            else:
+                new_tokens.append(token)
+                
+        if new_tokens:
+            joined = " ".join(new_tokens)
+            if joined.lower().startswith("in:name,description"):
+                return joined
+            return "in:name,description " + joined
         else:
-            new_tokens.append(token)
-            
-    if new_tokens:
-        return "in:name,description " + " ".join(new_tokens)
-    else:
-        return "in:name,description " + query
+            return "in:name,description " + q
+
+    res = _expand(query)
+    if not res:
+        return ""
+    # Enforce GitHub operator limit: maximum 5 OR operators (6 terms)
+    parts = [p.strip() for p in res.split(" OR ") if p.strip()]
+    seen = []
+    for p in parts:
+        if p not in seen:
+            seen.append(p)
+    return " OR ".join(seen[:6])
 
 
 def expand_query_with_gemini(query: str, api_key: str) -> str:
@@ -258,6 +293,16 @@ def api_trending():
                 enhanced_query = expand_query_with_gemini(query, api_key)
             else:
                 enhanced_query = expand_query(query)
+            
+            # Enforce GitHub operator limit: maximum 5 OR operators (6 terms)
+            if enhanced_query:
+                parts = [p.strip() for p in enhanced_query.split(" OR ") if p.strip()]
+                seen = []
+                for p in parts:
+                    if p not in seen:
+                        seen.append(p)
+                enhanced_query = " OR ".join(seen[:6])
+                
             logger.info("Rewrote query '%s' to '%s' (deep_search=%s, has_russian=%s)", query, enhanced_query, deep_search, has_russian)
             query = enhanced_query
 

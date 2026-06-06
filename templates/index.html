@@ -17,10 +17,13 @@
 <div class="app-container">
     <!-- Top Navigation Bar -->
     <header class="navbar">
-        <a href="/" class="navbar-brand">
-            <span id="brandIcon">🔥</span>
-            <h1 id="titleText">GitHub Trending</h1>
-        </a>
+        <div style="display:flex; align-items:center; gap:8px;">
+            <button class="btn btn-sm btn-ghost" id="btnSidebarToggle" onclick="toggleSidebar()" title="Toggle Filters" style="height: 32px; display: none; padding: 6px 8px; min-width: 32px;">⚙️</button>
+            <a href="/" class="navbar-brand">
+                <span id="brandIcon">🔥</span>
+                <h1 id="titleText">GitHub Trending</h1>
+            </a>
+        </div>
         
         <div class="navbar-actions">
             <!-- Twitter Proxy Dropdown -->
@@ -40,9 +43,9 @@
             
             <!-- Settings & AI Toggle -->
             <button class="btn btn-sm" onclick="toggleWatchlistPanel()" title="Your Watchlist" style="height: 32px;">🔔 <span id="watchlistCountBadge" style="display:none; background:var(--gold); color:#000; border-radius:50%; width:16px; height:16px; font-size:0.6rem; font-weight:800; display:inline-flex; align-items:center; justify-content:center; margin-left:2px;">0</span></button>
-            <button class="btn btn-sm" onclick="openDigestModal()" title="Generate Weekly Digest" style="height: 32px;">📧 Digest</button>
-            <button class="btn btn-sm" onclick="openApiKeyModal()" title="Gemini API Key Settings" style="height: 32px;">🔑 API Key</button>
-            <button class="btn btn-sm btn-accent" onclick="toggleAiChat()" title="Toggle AI Chat Panel" style="height: 32px;">🤖 AI Chat</button>
+            <button class="btn btn-sm" onclick="openDigestModal()" title="Generate Weekly Digest" style="height: 32px;">📧 <span class="btn-text">Digest</span></button>
+            <button class="btn btn-sm" onclick="openApiKeyModal()" title="Gemini API Key Settings" style="height: 32px;">🔑 <span class="btn-text">API Key</span></button>
+            <button class="btn btn-sm btn-accent" onclick="toggleAiChat()" title="Toggle AI Chat Panel" style="height: 32px;">🤖 <span class="btn-text">AI Chat</span></button>
         </div>
     </header>
 
