@@ -621,6 +621,33 @@ def api_ai_summarize():
             except (KeyError, IndexError):
                 return jsonify({"error": "Failed to parse Gemini API response. Check model availability."}), 502
         else:
+            is_quota_error = resp.status_code == 429
+            if resp.status_code in [400, 403]:
+                error_msg = resp.text.lower()
+                if "quota" in error_msg or "limit" in error_msg or "billing" in error_msg:
+                    is_quota_error = True
+                    
+            if is_quota_error:
+                logger.warning("Gemini API key quota/limit exceeded (status %d). Falling back to local summary.", resp.status_code)
+                if repo_name:
+                    local_summary = (
+                        f"🤖 **[Локальный ассистент]** (API-лимит превышен / Ошибка {resp.status_code})\n\n"
+                        f"⚠️ ИИ-ассистент временно недоступен, так как ваш API-ключ Gemini превысил квоту (Rate Limit / Quota Exceeded).\n\n"
+                        f"📦 **Репозиторий:** `{repo_name}`\n"
+                        f"📝 **Описание:** {description or 'Нет описания'}\n"
+                        f"💻 **Язык:** {language or 'Не указан'}\n\n"
+                        f"💡 *Вы можете настроить другой ключ или дождаться сброса лимита. Чат продолжает работать в ограниченном режиме.*"
+                    )
+                    return jsonify({"summary": local_summary})
+                elif repos:
+                    local_summary = (
+                        f"🤖 **[Локальный ассистент]** (API-лимит превышен / Ошибка {resp.status_code})\n\n"
+                        f"⚠️ Ваш API-ключ Gemini превысил доступный лимит запросов.\n\n"
+                        f"Сейчас загружено {len(repos)} репозиториев. "
+                        f"Вы можете искать по ним, фильтровать по языкам/звёздам и просматривать твиты."
+                    )
+                    return jsonify({"summary": local_summary})
+            
             return jsonify({"error": f"Gemini API returned status {resp.status_code}: {resp.text[:200]}"}), 502
     except Exception as e:
         return jsonify({"error": str(e)}), 500
