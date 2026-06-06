@@ -3,2695 +3,444 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔥 GitHub Trending</title>
+    <title>🔥 GitHub Trending Dashboard</title>
+    
+    <!-- Fonts & Style Assets -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    
+    <!-- External Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-        :root {
-            --bg: #0d1117;
-            --bg-card: rgba(22, 27, 34, 0.8);
-            --bg-input: rgba(22, 27, 34, 0.6);
-            --border: rgba(48, 54, 61, 0.6);
-            --text: #e6edf3;
-            --text-dim: #8b949e;
-            --accent: #f97316;
-            --accent2: #ec4899;
-            --gold: #fbbf24;
-            --blue: #60a5fa;
-            --green: #34d399;
-            --gradient: linear-gradient(135deg, #f97316, #ec4899);
-        }
-
-        body {
-            font-family: 'Inter', -apple-system, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100vh;
-            line-height: 1.5;
-        }
-
-        .header {
-            text-align: center;
-            padding: 48px 20px 32px;
-            position: relative;
-        }
-        .header::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 50%;
-            transform: translateX(-50%);
-            width: 600px; height: 300px;
-            background: radial-gradient(ellipse, rgba(249,115,22,0.12) 0%, transparent 70%);
-            pointer-events: none;
-        }
-        .header h1 {
-            font-size: 2.8rem;
-            font-weight: 800;
-            background: var(--gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 8px;
-        }
-        .header p { color: var(--text-dim); font-size: 1.05rem; }
-
-        .filters {
-            max-width: 1200px;
-            margin: 0 auto 32px;
-            padding: 0 20px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            align-items: center;
-        }
-        .search-box {
-            flex: 1;
-            min-width: 220px;
-            position: relative;
-        }
-        .search-box input {
-            width: 100%;
-            padding: 12px 16px 12px 44px;
-            background: var(--bg-input);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            color: var(--text);
-            font-size: 0.95rem;
-            font-family: inherit;
-            outline: none;
-            transition: border-color 0.3s;
-            backdrop-filter: blur(10px);
-        }
-        .search-box input:focus { border-color: var(--accent); }
-        .search-box::before {
-            content: '🔍';
-            position: absolute;
-            left: 14px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 1.1rem;
-        }
-        .filter-select {
-            padding: 12px 16px;
-            background: var(--bg-input);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            color: var(--text);
-            font-size: 0.9rem;
-            font-family: inherit;
-            outline: none;
-            cursor: pointer;
-            backdrop-filter: blur(10px);
-            transition: border-color 0.3s;
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b949e' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 12px center;
-            padding-right: 32px;
-        }
-        .filter-select:focus { border-color: var(--accent); }
-        .filter-select option { background: #161b22; color: var(--text); }
-
-        .stars-filter {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--text-dim);
-            font-size: 0.85rem;
-        }
-        .stars-filter input[type="range"] { width: 100px; accent-color: var(--gold); }
-
-        .btn-refresh {
-            padding: 12px 20px;
-            background: var(--gradient);
-            border: none;
-            border-radius: 12px;
-            color: white;
-            font-weight: 600;
-            font-size: 0.9rem;
-            cursor: pointer;
-            font-family: inherit;
-            transition: transform 0.2s, box-shadow 0.3s;
-        }
-        .btn-refresh:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(249, 115, 22, 0.3);
-        }
-        .btn-refresh:active { transform: translateY(0); }
-
-        .status-bar {
-            max-width: 1200px;
-            margin: 0 auto 20px;
-            padding: 0 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            color: var(--text-dim);
-            font-size: 0.85rem;
-        }
-        .result-count { font-weight: 600; color: var(--text); }
-        .auto-refresh {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-        }
-        .auto-refresh input[type="checkbox"] { accent-color: var(--accent); }
-
-        .grid {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px 60px;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-        }
-        @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
-        @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
-
-        .card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 24px;
-            backdrop-filter: blur(10px);
-            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s;
-            animation: fadeUp 0.5s ease both;
-            display: flex;
-            flex-direction: column;
-        }
-        .card:hover {
-            transform: translateY(-6px);
-            box-shadow: 0 8px 32px rgba(249, 115, 22, 0.15);
-            border-color: rgba(249, 115, 22, 0.3);
-        }
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .card-header {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 6px;
-            margin-bottom: 12px;
-        }
-        .card-name {
-            font-size: 1.05rem;
-            font-weight: 700;
-            color: var(--blue);
-            text-decoration: none;
-            transition: color 0.2s;
-            word-break: break-word;
-            display: block;
-            width: 100%;
-        }
-        .card-name:hover { color: #93c5fd; }
-
-        .badge-hot {
-            background: rgba(251, 191, 36, 0.15);
-            color: var(--gold);
-            font-size: 0.7rem;
-            font-weight: 700;
-            padding: 4px 10px;
-            border-radius: 20px;
-            white-space: nowrap;
-            flex-shrink: 0;
-        }
-
-        .card-footer-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: auto;
-            padding-top: 14px;
-        }
-        .built-by {
-            display: flex;
-            align-items: center;
-            gap: 2px;
-        }
-        .avatar {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            border: 2px solid #161b22;
-            margin-left: -8px;
-            transition: transform 0.2s ease, z-index 0.2s;
-            cursor: pointer;
-        }
-        .avatar:first-child { margin-left: 0; }
-        .avatar:hover {
-            transform: scale(1.2) translateY(-2px);
-            z-index: 10;
-        }
-        .btn-tweets {
-            background: rgba(96, 165, 250, 0.1);
-            border: 1px solid rgba(96, 165, 250, 0.2);
-            color: var(--blue);
-            padding: 5px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.78rem;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-        .btn-tweets:hover {
-            background: var(--blue);
-            color: #0d1117;
-            border-color: transparent;
-            box-shadow: 0 0 10px rgba(96, 165, 250, 0.3);
-        }
-
-        .btn-analytics {
-            padding: 12px 20px;
-            background: rgba(139, 92, 246, 0.1);
-            border: 1px solid rgba(139, 92, 246, 0.3);
-            border-radius: 12px;
-            color: #c084fc;
-            font-weight: 600;
-            font-size: 0.9rem;
-            cursor: pointer;
-            font-family: inherit;
-            transition: all 0.3s;
-        }
-        .btn-analytics:hover {
-            background: rgba(139, 92, 246, 0.2);
-            border-color: #a78bfa;
-            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.2);
-            transform: translateY(-2px);
-        }
-        .btn-analytics.active {
-            background: linear-gradient(135deg, #7c3aed, #db2777);
-            color: white;
-            border-color: transparent;
-            box-shadow: 0 4px 20px rgba(124, 58, 237, 0.3);
-        }
-
-        .tag-chip:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(96, 165, 250, 0.2);
-            filter: brightness(1.15);
-        }
-
-        .analytics-panel {
-            max-width: 1200px;
-            margin: 0 auto 30px;
-            padding: 0 20px;
-            display: none;
-            flex-direction: column;
-            gap: 20px;
-            animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-        }
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .analytics-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-        @media (max-width: 768px) {
-            .analytics-grid { grid-template-columns: 1fr; }
-        }
-
-        .chart-container {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 24px;
-            backdrop-filter: blur(10px);
-            min-height: 260px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .chart-container h3 {
-            font-size: 1rem;
-            font-weight: 700;
-            margin-bottom: 16px;
-            color: var(--text);
-            align-self: flex-start;
-        }
-        .chart-container canvas {
-            max-width: 100%;
-            max-height: 200px;
-        }
-
-        .stats-row {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-        }
-        @media (max-width: 600px) {
-            .stats-row { grid-template-columns: 1fr; }
-        }
-        .stat-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 20px;
-            text-align: center;
-            backdrop-filter: blur(10px);
-            transition: border-color 0.3s;
-        }
-        .stat-card:hover {
-            border-color: rgba(139, 92, 246, 0.3);
-        }
-        .stat-value {
-            font-size: 1.8rem;
-            font-weight: 800;
-            color: var(--green);
-            background: linear-gradient(135deg, #34d399, #60a5fa);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 4px;
-        }
-        .stat-label {
-            font-size: 0.8rem;
-            color: var(--text-dim);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            font-weight: 600;
-        }
-
-        /* Modal Styles */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 100;
-            left: 0; top: 0;
-            width: 100%; height: 100%;
-            background-color: rgba(13, 17, 23, 0.7);
-            backdrop-filter: blur(8px);
-            align-items: center;
-            justify-content: center;
-            animation: fadeIn 0.3s ease;
-        }
-        .modal-content {
-            background: rgba(22, 27, 34, 0.95);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 30px;
-            width: 90%;
-            max-width: 600px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-            position: relative;
-            transform: scale(0.9);
-            transition: transform 0.3s ease;
-        }
-        .modal.open { display: flex; }
-        .modal.open .modal-content { transform: scale(1); }
-        .close-modal {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            font-size: 28px;
-            color: var(--text-dim);
-            cursor: pointer;
-            transition: color 0.2s;
-        }
-        .close-modal:hover { color: var(--text); }
-        
-        .tweet-card {
-            background: rgba(30, 41, 59, 0.4);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 12px;
-            transition: border-color 0.2s;
-        }
-        .tweet-card:hover { border-color: var(--accent2); }
-        .tweet-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-            font-size: 0.85rem;
-        }
-        .tweet-author {
-            color: var(--blue);
-            font-weight: 700;
-            text-decoration: none;
-        }
-        .tweet-date { color: var(--text-dim); }
-        .tweet-text { font-size: 0.92rem; color: var(--text); line-height: 1.4; word-break: break-word; text-align: left; }
-        .tweet-badge-mock {
-            font-size: 0.7rem;
-            background: rgba(96, 165, 250, 0.15);
-            color: var(--blue);
-            padding: 2px 6px;
-            border-radius: 10px;
-            font-weight: 600;
-        }
-
-        .card-desc {
-            color: var(--text-dim);
-            font-size: 0.88rem;
-            margin-bottom: 16px;
-            flex: 1;
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-
-        .card-meta {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            flex-wrap: wrap;
-            font-size: 0.82rem;
-        }
-        .meta-item { display: flex; align-items: center; gap: 5px; }
-        .meta-stars { color: var(--gold); font-weight: 600; }
-        .meta-forks { color: var(--blue); }
-        .lang-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-        .meta-lang { color: var(--green); }
-
-        .loading { text-align: center; padding: 80px 20px; }
-        .spinner {
-            width: 48px; height: 48px;
-            border: 4px solid var(--border);
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin: 0 auto 16px;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        .error-box { text-align: center; padding: 60px 20px; color: var(--text-dim); }
-        .error-box h3 { color: #f87171; margin-bottom: 8px; }
-        .btn-retry {
-            margin-top: 16px;
-            padding: 10px 24px;
-            background: transparent;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            color: var(--text);
-            cursor: pointer;
-            font-family: inherit;
-            transition: border-color 0.3s;
-        }
-        .btn-retry:hover { border-color: var(--accent); }
-
-        .lang-switcher {
-            position: absolute;
-            top: 24px;
-            right: 24px;
-            display: flex;
-            gap: 6px;
-            z-index: 10;
-        }
-        .lang-btn {
-            background: var(--bg-input);
-            border: 1px solid var(--border);
-            color: var(--text-dim);
-            padding: 6px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.78rem;
-            font-weight: 700;
-            transition: all 0.2s ease;
-            backdrop-filter: blur(10px);
-        }
-        .lang-btn:hover {
-            border-color: var(--accent);
-            color: var(--text);
-        }
-        .lang-btn.active {
-            background: var(--gradient);
-            color: white;
-            border-color: transparent;
-            box-shadow: 0 0 12px rgba(249, 115, 22, 0.25);
-        }
-
-        .footer {
-            text-align: center;
-            padding: 32px 20px;
-            color: var(--text-dim);
-            font-size: 0.82rem;
-            border-top: 1px solid var(--border);
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        .footer a { color: var(--blue); text-decoration: none; }
-
-        .main-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px 60px;
-            display: flex;
-            gap: 24px;
-        }
-        .repos-section {
-            flex: 3;
-        }
-        .sidebar-section {
-            flex: 1;
-            min-width: 280px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        @media (max-width: 1000px) {
-            .main-container {
-                flex-direction: column;
-            }
-            .sidebar-section {
-                width: 100%;
-            }
-        }
-        .trend-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 12px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            text-decoration: none;
-            color: var(--text);
-            font-size: 0.88rem;
-            transition: all 0.2s;
-            cursor: pointer;
-            text-align: left;
-        }
-        .trend-item:hover {
-            border-color: var(--blue);
-            background: rgba(96, 165, 250, 0.08);
-            transform: translateX(4px);
-        }
-        .trend-name {
-            font-weight: 600;
-            color: var(--blue);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 170px;
-        }
-        .trend-tweets {
-            font-size: 0.75rem;
-            color: var(--text-dim);
-            flex-shrink: 0;
-        }
-    </style>
 </head>
 <body>
 
-<div class="header">
-    <div class="lang-switcher">
-        <button class="lang-btn" onclick="openApiKeyModal()" title="Gemini API Key">🔑</button>
-        <select class="filter-select" id="twitterProxySelect" onchange="changeTwitterProxy()" style="padding: 6px 12px; height: 32px; border-radius: 8px; font-size: 0.78rem; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-dim); transition: all 0.2s ease; cursor: pointer; outline: none; margin-right: 4px; padding-right: 24px; background-position: right 8px center;">
-            <option value="direct">X.com (Direct)</option>
-            <option value="https://xcancel.com">xcancel.com (Proxy)</option>
-            <option value="https://nitter.catsarch.com">nitter.catsarch.com</option>
-            <option value="https://nitter.tiekoetter.com">nitter.tiekoetter.com</option>
-            <option value="https://nitter.kareem.one">nitter.kareem.one</option>
-        </select>
-        <button class="lang-btn active" data-lang="en" onclick="changeLang('en')">EN</button>
-        <button class="lang-btn" data-lang="ru" onclick="changeLang('ru')">RU</button>
-    </div>
-    <h1 id="titleText">🔥 GitHub Trending</h1>
-    <p id="subtitleText">Discover the hottest repositories right now</p>
-</div>
-
-<div class="filters">
-    <div class="search-box">
-        <input type="text" id="searchInput" placeholder="Search repositories...">
-    </div>
-    <select class="filter-select" id="queryPresetsSelect" onchange="applyPresetQuery()" style="border-color: rgba(96,165,250,0.3); color: #93c5fd;">
-        <option value="all">🔍 Default Search</option>
-        <option value="security">🛡️ Security & Audits</option>
-        <option value="bypasses">🔓 Bypasses & Hacks</option>
-        <option value="hidden">👁️ Hidden / Obscure</option>
-        <option value="network">🌐 Network & Proxy</option>
-        <option value="obscure_authors">👤 Obscure / Independent Authors</option>
-    </select>
-    <select class="filter-select" id="durationSelect" onchange="fetchRepos()">
-        <option value="day">Today</option>
-        <option value="week" selected>This Week</option>
-        <option value="month">This Month</option>
-        <option value="year">This Year</option>
-    </select>
-    <select class="filter-select" id="languageSelect" onchange="fetchRepos()">
-        <option value="">All Languages</option>
-        <option value="python">Python</option>
-        <option value="javascript">JavaScript</option>
-        <option value="typescript">TypeScript</option>
-        <option value="rust">Rust</option>
-        <option value="go">Go</option>
-        <option value="java">Java</option>
-        <option value="c++">C++</option>
-        <option value="swift">Swift</option>
-        <option value="kotlin">Kotlin</option>
-        <option value="ruby">Ruby</option>
-        <option value="php">PHP</option>
-        <option value="shell">Shell</option>
-    </select>
-    <select class="filter-select" id="sortSelect" onchange="fetchRepos()">
-        <option value="stars">⭐ Stars</option>
-        <option value="forks">🍴 Forks</option>
-        <option value="updated">🕐 Updated</option>
-        <option value="hotness">🔥 Hotness</option>
-    </select>
-    <select class="filter-select" id="sourceSelect" onchange="fetchRepos()">
-        <option value="api">GitHub API</option>
-        <option value="trending">Trending Page</option>
-    </select>
-    <select class="filter-select" id="limitSelect" onchange="fetchRepos()">
-        <option value="10">10 Repos</option>
-        <option value="25" selected>25 Repos</option>
-        <option value="50">50 Repos</option>
-        <option value="100">100 Repos</option>
-        <option value="250">250 Repos</option>
-        <option value="500">500 Repos</option>
-    </select>
-    <div class="stars-filter">
-        <span id="minStarsLabelText">⭐ Min:</span>
-        <select class="filter-select" id="minStarsSelect" onchange="onMinStarsChange()" style="padding: 10px 14px; border-radius: 10px; font-size: 0.85rem;">
-            <option value="0">Any Stars</option>
-            <option value="100">> 100 ⭐</option>
-            <option value="1000">> 1k ⭐</option>
-            <option value="5000">> 5k ⭐</option>
-            <option value="10000">> 10k ⭐</option>
-            <option value="50000">> 50k ⭐</option>
-            <option value="custom">Custom...</option>
-        </select>
-        <input type="number" id="minStarsCustomInput" placeholder="Min Stars" style="display:none; width: 100px; padding: 10px 14px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 0.85rem; outline: none; transition: border-color 0.3s;" onchange="fetchRepos()">
-    </div>
-    <button class="btn-refresh" id="btnRefresh" onclick="fetchRepos()">Refresh</button>
-    <button class="btn-analytics" id="btnAdvancedToggle" onclick="toggleAdvancedFilters()">⚙️ Advanced</button>
-    <button class="btn-analytics" id="btnAnalytics" onclick="toggleAnalytics()">📊 Analytics</button>
-    <button class="btn-analytics" id="btnHistory" onclick="toggleHistoryPanel()">📜 Archive</button>
-</div>
-
-<!-- Advanced Filters Panel -->
-<div id="advancedFiltersPanel" style="display:none; max-width: 1200px; margin: -20px auto 30px; padding: 16px 20px; background: rgba(22, 27, 34, 0.4); border: 1px solid var(--border); border-radius: 12px; backdrop-filter: blur(10px); gap: 16px; flex-wrap: wrap; align-items: center; animation: slideDown 0.3s ease;">
-    <div style="display:flex; flex-direction:column; gap:6px; min-width: 180px; align-items: flex-start;">
-        <span style="font-size:0.75rem; color:var(--text-dim);" id="advTopicLabel">Topic / Tag</span>
-        <input type="text" id="advTopicInput" placeholder="e.g. machine-learning" style="padding: 10px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 0.85rem; outline: none; transition: border-color 0.3s; width: 100%;" onchange="fetchRepos()">
-    </div>
-    <div style="display:flex; flex-direction:column; gap:6px; min-width: 180px; align-items: flex-start;">
-        <span style="font-size:0.75rem; color:var(--text-dim);" id="advAuthorLabel">Owner / Author</span>
-        <input type="text" id="advAuthorInput" placeholder="e.g. google or torvalds" style="padding: 10px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 0.85rem; outline: none; transition: border-color 0.3s; width: 100%;" onchange="fetchRepos()">
-    </div>
-    <div style="display:flex; flex-direction:column; gap:6px; min-width: 140px; align-items: flex-start;">
-        <span style="font-size:0.75rem; color:var(--text-dim);" id="advMinForksLabel">Min Forks</span>
-        <input type="number" id="advMinForksInput" placeholder="Min Forks" style="padding: 10px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 0.85rem; outline: none; transition: border-color 0.3s; width: 100%;" onchange="fetchRepos()">
-    </div>
-    <div style="display:flex; flex-direction:column; gap:6px; min-width: 140px; align-items: flex-start;">
-        <span style="font-size:0.75rem; color:var(--text-dim);" id="advMaxStarsLabel">Max Stars</span>
-        <input type="number" id="advMaxStarsInput" placeholder="e.g. 500" style="padding: 10px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 0.85rem; outline: none; transition: border-color 0.3s; width: 100%;" onchange="fetchRepos()">
-    </div>
-    <div style="display:flex; align-items:center; gap:8px; margin-top: 18px; min-width: 180px;">
-        <input type="checkbox" id="advExcludeOrgCheckbox" onchange="fetchRepos()" style="cursor:pointer; width:16px; height:16px;">
-        <span style="font-size:0.85rem; color:var(--text-dim); cursor:pointer;" id="advExcludeOrgLabel">Exclude Big Tech</span>
-    </div>
-</div>
-
-<!-- Historical Archive Panel -->
-<div id="historyPanel" style="display:none; max-width: 1200px; margin: -20px auto 30px; padding: 20px; background: rgba(22, 27, 34, 0.4); border: 1px solid var(--border); border-radius: 12px; backdrop-filter: blur(10px); animation: slideDown 0.3s ease; flex-direction: column; gap: 16px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px; width: 100%;">
-        <h3 style="margin:0; font-size:1.1rem; color:var(--blue);" id="historyTitleText">📜 Historical Snapshots (SQLite Archive)</h3>
-        <div style="display:flex; gap:10px; align-items:center; width:100%; max-width:400px;">
-            <input type="text" id="historySearchInput" placeholder="Search archive..." style="flex:1; padding: 10px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 0.85rem; outline: none; transition: border-color 0.3s;" oninput="fetchHistory()">
-            <button class="btn-refresh" onclick="fetchHistory()" style="margin-top:0; padding:10px 18px; font-size:0.85rem; border-radius:10px;">Search</button>
-        </div>
-    </div>
-    <div id="historyTableContainer" style="overflow-x:auto; max-height: 400px; width: 100%;">
-        <div class="loading"><div class="spinner"></div></div>
-    </div>
-</div>
-
-<div class="status-bar">
-    <div>
-        <span class="result-count" id="resultCount">—</span> <span id="repositoriesFoundText">repositories found</span>
-        <span id="sourceLabel" style="margin-left:8px;color:var(--text-dim)"></span>
-    </div>
-    <label class="auto-refresh">
-        <input type="checkbox" id="autoRefresh"> <span id="autoRefreshLabelText">Auto-refresh (60s)</span>
-    </label>
-</div>
-
-<div class="tags-cloud" id="tagsCloud" style="display:none; margin: 15px auto; max-width: 1200px; padding: 10px 20px; background: rgba(255,255,255,0.01); border: 1px solid var(--border); border-radius: 12px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
-    <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-dim); margin-right: 6px;" id="topicsCloudTitle">Popular Topics:</span>
-    <div id="tagsCloudList" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
-</div>
-
-<!-- Analytics Panel -->
-<div id="analyticsPanel" class="analytics-panel">
-    <div class="analytics-grid">
-        <div class="chart-container">
-            <h3 id="chartLangTitle">Languages Distribution</h3>
-            <canvas id="languagesChart"></canvas>
-        </div>
-        <div class="chart-container">
-            <h3 id="chartStarsTitle">Top Repositories by Stars</h3>
-            <canvas id="starsChart"></canvas>
-        </div>
-    </div>
-    <div class="stats-row">
-        <div class="stat-card">
-            <div class="stat-value" id="statTotalRepos">—</div>
-            <div class="stat-label" id="statTotalReposLabel">Total Repositories</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value" id="statAvgStars">—</div>
-            <div class="stat-label" id="statAvgStarsLabel">Average Stars</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value" id="statTopLang">—</div>
-            <div class="stat-label" id="statTopLangLabel">Top Language</div>
-        </div>
-    </div>
-</div>
-
-<div class="main-container">
-    <div class="repos-section" id="content">
-        <div class="loading">
-            <div class="spinner"></div>
-            <p style="color:var(--text-dim)">Loading trending repositories...</p>
-        </div>
-    </div>
-    
-    <div class="sidebar-section">
-        <!-- Twitter Trends Card -->
-        <div class="card" style="padding: 20px; animation-delay: 0.1s; height: fit-content; background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px;">
-            <h3 style="font-size: 1.1rem; font-weight: 800; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: var(--text);" id="sidebarTrendsTitle">
-                <span style="color: var(--blue);">🐦</span> Twitter Trends
-            </h3>
-            <div id="twitterTrendsList" style="display: flex; flex-direction: column; gap: 10px;">
-                <div class="loading" style="padding: 20px 0; text-align: center;"><div class="spinner" style="width: 24px; height: 24px; border-width: 3px; margin: 0 auto 8px;"></div><p style="font-size: 0.78rem; color: var(--text-dim);">Loading trends...</p></div>
-            </div>
-        </div>
+<div class="app-container">
+    <!-- Top Navigation Bar -->
+    <header class="navbar">
+        <a href="/" class="navbar-brand">
+            <span id="brandIcon">🔥</span>
+            <h1 id="titleText">GitHub Trending</h1>
+        </a>
         
-        <!-- Quick AI Tips Card -->
-        <div class="card" style="padding: 20px; animation-delay: 0.2s; height: fit-content; background: linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(22, 27, 34, 0.8)); border: 1px solid rgba(124, 58, 237, 0.25); border-radius: 16px;">
-            <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 8px; color: #c084fc; display: flex; align-items: center; gap: 6px;">
-                <span>💡</span> AI Tip
-            </h4>
-            <p style="font-size: 0.82rem; color: var(--text-dim); line-height: 1.4; text-align: left;" id="sidebarAiTipText">
-                Click 🤖 AI on any repository to get a quick summary, installation tips, and technical architecture reviews instantly.
-            </p>
-        </div>
-    </div>
-</div>
-
-<div class="footer" id="footerText">
-    Powered by <a href="https://docs.github.com/en/rest" target="_blank">GitHub API</a> •
-    Built with 🔥 GitHub Trending CLI
-</div>
-
-<!-- Repository Details Hub Modal (replacing old tweetsModal) -->
-<div id="tweetsModal" class="modal">
-    <div class="modal-content" style="max-width: 800px; width: 90%; padding: 24px;">
-        <span class="close-modal" onclick="closeModal()">&times;</span>
-        <h2 id="modalTitleText" style="font-size:1.5rem; font-weight:800; margin-bottom:5px; display: flex; align-items: center; gap: 8px;">📊 Repo Details Hub</h2>
-        <p id="modalSubtitle" style="color:var(--blue); font-weight:700; margin-bottom:15px; font-size:0.95rem;"></p>
-        
-        <!-- Tab Bar -->
-        <div class="modal-tabs" style="display: flex; border-bottom: 1px solid var(--border); margin-bottom: 15px; gap: 4px; overflow-x: auto;">
-            <button class="modal-tab-btn active" id="tabBtnSummary" onclick="switchModalTab('summary')" style="padding: 10px 16px; background: transparent; border: none; border-bottom: 2px solid var(--blue); color: var(--blue); font-weight: 600; cursor: pointer; font-size: 0.85rem; outline: none; white-space: nowrap;">ℹ️ Summary</button>
-            <button class="modal-tab-btn" id="tabBtnDiscussions" onclick="switchModalTab('discussions')" style="padding: 10px 16px; background: transparent; border: none; border-bottom: 2px solid transparent; color: var(--text-dim); font-weight: 600; cursor: pointer; font-size: 0.85rem; outline: none; white-space: nowrap;">💬 Discussions</button>
-            <button class="modal-tab-btn" id="tabBtnSecurity" onclick="switchModalTab('security')" style="padding: 10px 16px; background: transparent; border: none; border-bottom: 2px solid transparent; color: var(--text-dim); font-weight: 600; cursor: pointer; font-size: 0.85rem; outline: none; white-space: nowrap;">🛡️ Security Audit</button>
-            <button class="modal-tab-btn" id="tabBtnGrowth" onclick="switchModalTab('growth')" style="padding: 10px 16px; background: transparent; border: none; border-bottom: 2px solid transparent; color: var(--text-dim); font-weight: 600; cursor: pointer; font-size: 0.85rem; outline: none; white-space: nowrap;">📈 Growth</button>
-        </div>
-
-        <!-- Tab Contents -->
-        <!-- 1. Summary Panel -->
-        <div id="tabContentSummary" class="tab-panel-content">
-            <div id="modalSummaryAiContent" style="max-height: 350px; overflow-y: auto; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.02); margin-bottom: 15px; font-size: 0.9rem; line-height: 1.5; color: var(--text); border: 1px solid var(--border);">
-                <div class="loading"><div class="spinner"></div></div>
+        <div class="navbar-actions">
+            <!-- Twitter Proxy Dropdown -->
+            <select class="filter-select" id="twitterProxySelect" onchange="changeTwitterProxy()" style="padding: 6px 12px; height: 32px; font-size: 0.78rem; width: auto; min-width: 140px; margin-right: 4px;">
+                <option value="direct">X.com (Direct)</option>
+                <option value="https://xcancel.com">xcancel.com (Proxy)</option>
+                <option value="https://nitter.catsarch.com">nitter.catsarch.com</option>
+                <option value="https://nitter.tiekoetter.com">nitter.tiekoetter.com</option>
+                <option value="https://nitter.kareem.one">nitter.kareem.one</option>
+            </select>
+            
+            <!-- Language Switcher -->
+            <div class="lang-switcher">
+                <button class="lang-btn active" data-lang="en" onclick="changeLang('en')">EN</button>
+                <button class="lang-btn" data-lang="ru" onclick="changeLang('ru')">RU</button>
             </div>
+            
+            <!-- Settings & AI Toggle -->
+            <button class="btn btn-sm" onclick="openApiKeyModal()" title="Gemini API Key Settings" style="height: 32px;">🔑 API Key</button>
+            <button class="btn btn-sm btn-accent" onclick="toggleAiChat()" title="Toggle AI Chat Panel" style="height: 32px;">🤖 AI Chat</button>
         </div>
+    </header>
 
-        <!-- 2. Discussions Panel -->
-        <div id="tabContentDiscussions" class="tab-panel-content" style="display: none;">
-            <div id="modalDiscussionsContainer" style="max-height: 350px; overflow-y: auto; padding-right: 5px; display: flex; flex-direction: column; gap: 12px;">
-                <div class="loading"><div class="spinner"></div></div>
-            </div>
-            <!-- Alt Search Links and Twitter Action -->
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-top:20px; border-top:1px solid var(--border); padding-top:16px;">
-                <div style="display:flex; align-items:center; gap:8px; font-size:0.82rem; color:var(--text-dim);">
-                    <span id="modalAltSearchText">Alt:</span>
-                    <a id="modalGithubSearchLink" href="#" target="_blank" style="color:var(--blue); text-decoration:none;">GitHub</a> •
-                    <a id="modalBlueskySearchLink" href="#" target="_blank" style="color:var(--blue); text-decoration:none;">Bluesky</a> •
-                    <a id="modalGoogleSearchLink" href="#" target="_blank" style="color:var(--blue); text-decoration:none;">Google</a>
-                </div>
-                <div style="display:flex; gap:8px;">
-                    <a id="modalTwitterLink" href="#" target="_blank" class="btn-refresh" style="display:inline-block; text-decoration:none; text-align:center; font-size:0.85rem; padding: 10px 18px; margin-top:0;">Open in X/Twitter</a>
+    <div class="main-container">
+        <!-- Sidebar (Left) - Filters and Navigation -->
+        <aside class="sidebar-filters">
+            <!-- Search & Presets -->
+            <div class="filter-group">
+                <div class="sidebar-title" id="searchTitle">Search</div>
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Search repositories...">
                 </div>
             </div>
-        </div>
-
-        <!-- 3. Security Panel -->
-        <div id="tabContentSecurity" class="tab-panel-content" style="display: none;">
-            <div id="modalSecurityContainer" style="min-height: 200px; max-height: 350px; overflow-y: auto; border-radius: 8px; border: 1px solid var(--border); background: rgba(255,255,255,0.02); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; padding: 20px;">
-                <p style="color: var(--text-dim); text-align: center; font-size: 0.88rem; max-width: 500px;" id="securityIntroText">Run an automated AI audit of the repository's dependency manifest (package.json, Cargo.toml, requirements.txt, go.mod, etc.) to evaluate dependency risk and security health.</p>
-                <button class="btn-refresh" onclick="runSecurityAudit()" style="padding: 12px 24px; font-size: 0.9rem; font-weight: 600; cursor: pointer; margin-top: 0; background: linear-gradient(135deg, #10b981, #059669); border: none; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);" id="runSecurityAuditBtn">🔍 Run Security Audit</button>
+            
+            <!-- Query Presets (Synced with hidden queryPresetsSelect for backend compatibility) -->
+            <div class="filter-group">
+                <div class="sidebar-title" id="presetsTitle">Presets</div>
+                <select id="queryPresetsSelect" onchange="applyPresetQuery()" style="display: none;">
+                    <option value="all">🔍 Default Search</option>
+                    <option value="security">🛡️ Security & Audits</option>
+                    <option value="bypasses">🔓 Bypasses & Hacks</option>
+                    <option value="hidden">👁️ Hidden / Obscure</option>
+                    <option value="network">🌐 Network & Proxy</option>
+                    <option value="obscure_authors">👤 Obscure / Independent Authors</option>
+                </select>
+                <div class="presets-list">
+                    <button class="preset-item active" data-preset="all" onclick="applyPresetQuery('all')"><span>🔍</span> Default Search</button>
+                    <button class="preset-item" data-preset="security" onclick="applyPresetQuery('security')"><span>🛡️</span> Security & Audits</button>
+                    <button class="preset-item" data-preset="bypasses" onclick="applyPresetQuery('bypasses')"><span>🔓</span> Bypasses & Hacks</button>
+                    <button class="preset-item" data-preset="hidden" onclick="applyPresetQuery('hidden')"><span>👁️</span> Hidden / Obscure</button>
+                    <button class="preset-item" data-preset="network" onclick="applyPresetQuery('network')"><span>🌐</span> Network & Proxy</button>
+                    <button class="preset-item" data-preset="obscure_authors" onclick="applyPresetQuery('obscure_authors')"><span>👤</span> Obscure / Independent Authors</button>
+                </div>
             </div>
-        </div>
-
-        <!-- 4. Growth Panel -->
-        <div id="tabContentGrowth" class="tab-panel-content" style="display: none;">
-            <div style="height: 280px; position: relative;">
-                <canvas id="growthChart"></canvas>
+            
+            <!-- Time Duration -->
+            <div class="filter-group">
+                <div class="sidebar-title" id="durationTitle">Duration</div>
+                <select class="filter-select" id="durationSelect" onchange="fetchRepos()">
+                    <option value="day">Today</option>
+                    <option value="week" selected>This Week</option>
+                    <option value="month">This Month</option>
+                    <option value="year">This Year</option>
+                </select>
             </div>
-            <p id="growthStatsDesc" style="font-size: 0.78rem; color: var(--text-dim); text-align: center; margin-top: 8px;">Historical tracking records star and hype velocity benchmarks over time.</p>
-        </div>
+            
+            <!-- Language -->
+            <div class="filter-group">
+                <div class="sidebar-title" id="languageTitle">Language</div>
+                <select class="filter-select" id="languageSelect" onchange="fetchRepos()">
+                    <option value="">All Languages</option>
+                    <option value="python">Python</option>
+                    <option value="javascript">JavaScript</option>
+                    <option value="typescript">TypeScript</option>
+                    <option value="rust">Rust</option>
+                    <option value="go">Go</option>
+                    <option value="java">Java</option>
+                    <option value="c++">C++</option>
+                    <option value="swift">Swift</option>
+                    <option value="kotlin">Kotlin</option>
+                    <option value="ruby">Ruby</option>
+                    <option value="php">PHP</option>
+                    <option value="shell">Shell</option>
+                </select>
+            </div>
+            
+            <!-- Sorting -->
+            <div class="filter-group">
+                <div class="sidebar-title" id="sortTitle">Sort By</div>
+                <select class="filter-select" id="sortSelect" onchange="fetchRepos()">
+                    <option value="stars">⭐ Stars</option>
+                    <option value="forks">🍴 Forks</option>
+                    <option value="updated">🕐 Updated</option>
+                    <option value="hotness">🔥 Hotness</option>
+                </select>
+            </div>
+            
+            <!-- Source Selector -->
+            <div class="filter-group">
+                <div class="sidebar-title" id="sourceTitle">Source</div>
+                <select class="filter-select" id="sourceSelect" onchange="fetchRepos()">
+                    <option value="api">GitHub API</option>
+                    <option value="trending">Trending Page</option>
+                </select>
+            </div>
+            
+            <!-- Limit -->
+            <div class="filter-group">
+                <div class="sidebar-title" id="limitTitle">Limit</div>
+                <select class="filter-select" id="limitSelect" onchange="fetchRepos()">
+                    <option value="10">10 Repos</option>
+                    <option value="25" selected>25 Repos</option>
+                    <option value="50">50 Repos</option>
+                    <option value="100">100 Repos</option>
+                    <option value="250">250 Repos</option>
+                    <option value="500">500 Repos</option>
+                </select>
+            </div>
+            
+            <!-- Min Stars -->
+            <div class="filter-group">
+                <div class="sidebar-title" id="minStarsTitle">Min Stars</div>
+                <div class="stars-filter">
+                    <span id="minStarsLabelText" style="display:none;">⭐ Min:</span>
+                    <select class="filter-select" id="minStarsSelect" onchange="onMinStarsChange()">
+                        <option value="0">Any Stars</option>
+                        <option value="100">> 100 ⭐</option>
+                        <option value="1000">> 1k ⭐</option>
+                        <option value="5000">> 5k ⭐</option>
+                        <option value="10000">> 10k ⭐</option>
+                        <option value="50000">> 50k ⭐</option>
+                        <option value="custom">Custom...</option>
+                    </select>
+                </div>
+                <input type="number" id="minStarsCustomInput" placeholder="Min Stars" style="display:none;" onchange="fetchRepos()">
+            </div>
+            
+            <!-- Collapsible Advanced Filters -->
+            <div class="filter-group">
+                <button class="btn btn-ghost btn-sm" id="btnAdvancedToggle" onclick="toggleAdvancedFilters()" style="justify-content: flex-start; padding-left: 0;">⚙️ Advanced Filters</button>
+                <div id="advancedFiltersPanel" class="advanced-filters" style="display:none;">
+                    <div class="filter-group">
+                        <span id="advTopicLabel">Topic / Tag</span>
+                        <input type="text" id="advTopicInput" placeholder="e.g. machine-learning" onchange="fetchRepos()">
+                    </div>
+                    <div class="filter-group">
+                        <span id="advAuthorLabel">Owner / Author</span>
+                        <input type="text" id="advAuthorInput" placeholder="e.g. google" onchange="fetchRepos()">
+                    </div>
+                    <div class="filter-group">
+                        <span id="advMinForksLabel">Min Forks</span>
+                        <input type="number" id="advMinForksInput" placeholder="0" onchange="fetchRepos()">
+                    </div>
+                    <div class="filter-group">
+                        <span id="advMaxStarsLabel">Max Stars</span>
+                        <input type="number" id="advMaxStarsInput" placeholder="10000" onchange="fetchRepos()">
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px; margin-top: 4px;">
+                        <input type="checkbox" id="advExcludeOrgCheckbox" onchange="fetchRepos()" style="cursor:pointer; width:14px; height:14px; accent-color:var(--accent);">
+                        <span id="advExcludeOrgLabel" style="font-size:0.75rem; color:var(--text-dim); cursor:pointer;">Exclude Big Tech</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Utility Buttons -->
+            <div class="filter-group" style="margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); gap: 10px;">
+                <button class="btn btn-accent" id="btnRefresh" onclick="fetchRepos()" style="width: 100%;">Refresh</button>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-ghost" id="btnAnalytics" onclick="toggleAnalytics()" style="flex: 1; font-size: 0.78rem;">📊 Analytics</button>
+                    <button class="btn btn-ghost" id="btnHistory" onclick="toggleHistoryPanel()" style="flex: 1; font-size: 0.78rem;">📜 Archive</button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Central Workspace Section -->
+        <main class="workspace-content">
+            <!-- Header section of content -->
+            <div class="content-header">
+                <div class="content-title-area">
+                    <h2 id="subtitleText">Discover Trending Repositories</h2>
+                    <p style="font-size:0.8rem; color:var(--text-dim);">
+                        <span class="result-count" id="resultCount">—</span> <span id="repositoriesFoundText">repositories found</span>
+                        <span id="sourceLabel" style="margin-left:6px; color:var(--text-muted);"></span>
+                    </p>
+                </div>
+                
+                <div class="content-actions">
+                    <label class="auto-refresh" style="display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--text-dim); cursor: pointer;">
+                        <input type="checkbox" id="autoRefresh" style="accent-color: var(--accent);">
+                        <span id="autoRefreshLabelText">Auto-refresh (60s)</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Collapsible Analytics Panel -->
+            <div id="analyticsPanel" class="analytics-panel" style="display: none;">
+                <div class="analytics-grid">
+                    <div class="chart-container">
+                        <h3 id="chartLangTitle">Languages Distribution</h3>
+                        <canvas id="languagesChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3 id="chartStarsTitle">Top Repositories by Stars</h3>
+                        <canvas id="starsChart"></canvas>
+                    </div>
+                </div>
+                <div class="stats-row">
+                    <div class="stat-card">
+                        <div class="stat-value" id="statTotalRepos">—</div>
+                        <div class="stat-label" id="statTotalReposLabel">Total Repositories</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statAvgStars">—</div>
+                        <div class="stat-label" id="statAvgStarsLabel">Average Stars</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statTopLang">—</div>
+                        <div class="stat-label" id="statTopLangLabel">Top Language</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Collapsible Historical Snapshots Panel -->
+            <div id="historyPanel" class="history-panel" style="display: none;">
+                <div class="history-header">
+                    <h3 id="historyTitleText">📜 Historical Snapshots (SQLite Archive)</h3>
+                    <div class="history-search">
+                        <input type="text" id="historySearchInput" placeholder="Search archive..." oninput="fetchHistory()">
+                        <button class="btn btn-sm btn-primary" onclick="fetchHistory()">Search</button>
+                    </div>
+                </div>
+                <div id="historyTableContainer" class="history-table-container">
+                    <div class="loading"><div class="spinner"></div></div>
+                </div>
+            </div>
+
+            <!-- Tags Cloud (Popular topics) -->
+            <div class="tags-cloud" id="tagsCloud" style="display:none;">
+                <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-right: 6px;" id="topicsCloudTitle">Popular Topics:</span>
+                <div id="tagsCloudList" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
+            </div>
+
+            <!-- Repositories Grid Display -->
+            <div id="content">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p style="color:var(--text-muted); font-size:0.85rem;">Loading repositories...</p>
+                </div>
+            </div>
+            
+            <!-- Simple Footer inside Workspace -->
+            <footer class="footer" id="footerText">
+                Powered by <a href="https://docs.github.com/en/rest" target="_blank">GitHub API</a> • Built with 🔥 GitHub Trending CLI
+            </footer>
+        </main>
+
+        <!-- Right Side Panel - Integrated AI Assistant & Trends -->
+        <aside id="aiChatPane" class="companion-panel closed">
+            <!-- Sidebar Panel Header -->
+            <div class="companion-header">
+                <div class="companion-info">
+                    <div class="companion-avatar">🤖</div>
+                    <div class="companion-details">
+                        <h4 id="aiAgentTitleText">Gemini AI Assistant</h4>
+                        <p id="aiAgentStatusText">Online • Ready</p>
+                    </div>
+                </div>
+                <button onclick="toggleAiChat()" style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: var(--text-muted); line-height: 1;">&times;</button>
+            </div>
+            
+            <!-- Companion Panel Navigation Tabs -->
+            <div class="companion-tabs">
+                <button class="companion-tab-btn active" data-tab="chat" onclick="switchCompanionTab('chat')">Assistant</button>
+                <button class="companion-tab-btn" data-tab="trends" onclick="switchCompanionTab('trends')">Community Trends</button>
+            </div>
+            
+            <!-- Companion Body Content -->
+            <div class="companion-content">
+                <!-- 1. AI Assistant Tab Content -->
+                <div id="companionChatContent" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+                    <!-- Message Log -->
+                    <div id="aiChatMessages" class="chat-messages">
+                        <!-- Loaded dynamically -->
+                    </div>
+                    
+                    <!-- Context Bar -->
+                    <div id="aiChatContext" class="chat-context-bar">
+                        <span id="aiContextLabel">Global search context active</span>
+                        <button id="aiContextClearBtn" onclick="clearAiContext()" class="chat-context-clear">Clear</button>
+                    </div>
+                    
+                    <!-- Input Area -->
+                    <div class="chat-input-area">
+                        <!-- Quick Suggestions Chips scrollable row -->
+                        <div class="chat-chips">
+                            <button onclick="sendQuickAiQuery('suggest')" class="chat-chip" id="chipSuggestText">🚀 Suggest Hot Repos</button>
+                            <button onclick="sendQuickAiQuery('explain')" class="chat-chip" id="chipExplainText">🔥 Explain Trends</button>
+                            <button onclick="sendQuickAiQuery('digest')" class="chat-chip" id="chipDigestText">📋 Daily Digest</button>
+                            <button onclick="sendQuickAiQuery('help')" class="chat-chip" id="chipHelpText">❓ Help Guide</button>
+                        </div>
+                        
+                        <div class="chat-input-wrapper">
+                            <input type="text" id="aiChatInput" placeholder="Ask anything..." onkeydown="if(event.key==='Enter')sendAiChatMessage()">
+                            <button onclick="sendAiChatMessage()" id="aiChatSendBtn" class="btn btn-accent btn-sm">Send</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 2. Community Trends Tab Content -->
+                <div id="companionTrendsContent" style="display: none; flex: 1; overflow-y: auto;">
+                    <div class="trends-panel">
+                        <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 0.78rem; color: var(--text-dim); margin-bottom: 8px;" id="sidebarTrendsDesc">
+                            <h5 style="color:var(--text); font-weight:600; margin-bottom:4px;" id="sidebarTrendsTitle">🔥 Community Trends</h5>
+                            <span id="sidebarAiTipText">Click a hashtag below to filter repositories and ask the AI agent about it.</span>
+                        </div>
+                        <div id="twitterTrendsList" style="display: flex; flex-direction: column; gap: 8px;">
+                            <div class="loading" style="padding: 20px 0;"><div class="spinner" style="width:20px; height:20px;"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
     </div>
 </div>
 
-<!-- Floating Compare Bar -->
-<div id="compareBar" style="position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(22, 27, 34, 0.95); border: 1px solid var(--blue); box-shadow: 0 8px 32px rgba(96, 165, 250, 0.3); border-radius: 20px; padding: 12px 24px; display: none; align-items: center; gap: 16px; z-index: 100; backdrop-filter: blur(10px); border-radius: 12px;">
-    <span style="font-size: 0.9rem; font-weight: 600; color: var(--text);" id="compareBarText">Selected: 0 repos</span>
-    <button class="btn-refresh" onclick="runAiComparison()" style="padding: 8px 16px; font-size: 0.85rem; margin-top: 0; background: linear-gradient(135deg, #3b82f6, #1d4ed8); border: none;" id="compareBarBtn">⚔️ Compare with AI</button>
-    <button class="btn-retry" onclick="clearRepoCompare()" style="padding: 8px 16px; font-size: 0.85rem; margin-top: 0;" id="compareBarClearBtn">Clear</button>
+<!-- Floating Compare Status Bar -->
+<div id="compareBar">
+    <span id="compareBarText">Selected: 0 repos</span>
+    <button class="btn btn-accent btn-sm" onclick="runAiComparison()" id="compareBarBtn">⚔️ Compare with AI</button>
+    <button class="btn btn-ghost btn-sm" onclick="clearRepoCompare()" id="compareBarClearBtn">Clear</button>
 </div>
 
-<!-- Compare Results Modal -->
+<!-- Modal: side-by-side Repository Comparison -->
 <div id="compareModal" class="modal">
-    <div class="modal-content" style="max-width: 850px; width: 90%; padding: 24px;">
+    <div class="modal-content" style="max-width: 800px; width: 92%;">
         <span class="close-modal" onclick="closeCompareModal()">&times;</span>
-        <h2 id="compareModalTitle" style="font-size:1.5rem; font-weight:800; margin-bottom:15px; display: flex; align-items: center; gap: 8px;">⚔️ AI Side-by-Side Comparison</h2>
-        <div id="compareModalContent" style="max-height: 480px; overflow-y: auto; padding: 16px; border-radius: 8px; border: 1px solid var(--border); background: rgba(255,255,255,0.02); font-size: 0.9rem; line-height: 1.5; color: var(--text);">
+        <h2 id="compareModalTitle" style="font-size:1.25rem; font-weight:700; margin-bottom:16px;">⚔️ AI Side-by-Side Comparison</h2>
+        <div id="compareModalContent">
             <div class="loading"><div class="spinner"></div></div>
         </div>
     </div>
 </div>
 
-
-<!-- API Key Configuration Modal -->
-<div id="apiKeyModal" class="modal">
-    <div class="modal-content" style="max-width: 400px; padding: 24px;">
-        <span class="close-modal" onclick="closeApiKeyModal()">&times;</span>
-        <h3 id="apiKeyModalTitleText" style="font-size:1.2rem; font-weight:800; margin-bottom:12px; color:var(--text);">🔑 Gemini API Key Settings</h3>
-        <p style="color:var(--text-dim); font-size:0.82rem; margin-bottom:16px; text-align:left;" id="apiKeyModalDescText">Enter your Google Gemini API key. The key will be stored securely in your browser's localStorage and sent in your request headers.</p>
-        <input type="password" id="apiKeyInput" placeholder="AIzaSy..." style="width:100%; padding:10px 12px; background:var(--bg-input); border:1px solid var(--border); border-radius:10px; color:var(--text); font-size:0.85rem; font-family:inherit; outline:none; margin-bottom:16px;">
-        <div style="display:flex; justify-content:flex-end; gap:8px;">
-            <button onclick="closeApiKeyModal()" class="btn-retry" style="margin-top:0; padding: 8px 16px;" id="apiKeyCancelBtnText">Cancel</button>
-            <button onclick="saveApiKey()" class="btn-refresh" style="padding: 8px 16px;" id="apiKeySaveBtnText">Save Key</button>
-        </div>
-    </div>
-</div>
-
-<!-- Floating AI Chat Button -->
-<div id="aiChatBubble" onclick="toggleAiChat()" style="position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #7c3aed, #db2777); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 32px rgba(124, 58, 237, 0.4); cursor: pointer; z-index: 90; transition: transform 0.3s ease; border: 1px solid rgba(255, 255, 255, 0.1);">
-    <span style="font-size: 28px;">🤖</span>
-    <span id="aiBadge" style="position: absolute; top: -5px; right: -5px; background: #34d399; color: #0d1117; font-size: 0.65rem; font-weight: 800; padding: 2px 6px; border-radius: 10px; box-shadow: 0 2px 8px rgba(52, 211, 153, 0.4);">Gemini</span>
-</div>
-
-<!-- AI Agent Chat Pane -->
-<div id="aiChatPane" style="position: fixed; bottom: 100px; right: 30px; width: 380px; height: 500px; background: rgba(22, 27, 34, 0.95); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6); display: none; flex-direction: column; z-index: 95; backdrop-filter: blur(12px); overflow: hidden; animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;">
-    <!-- Chat Header -->
-    <div style="padding: 16px; background: linear-gradient(135deg, #7c3aed, #db2777); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="font-size: 24px;">🤖</span>
-            <div>
-                <h4 style="font-weight: 700; font-size: 0.95rem; color: white;" id="aiAgentTitleText">Gemini AI Agent</h4>
-                <p style="font-size: 0.72rem; color: rgba(255,255,255,0.8);" id="aiAgentStatusText">Online • Ready to assist</p>
-            </div>
-        </div>
-        <div style="display: flex; gap: 10px; align-items: center;">
-            <button onclick="openApiKeyModal()" style="background: none; border: none; font-size: 16px; cursor: pointer; color: white; display:flex; align-items:center;" title="API Key Settings">🔑</button>
-            <button onclick="toggleAiChat()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: rgba(255, 255, 255, 0.7); line-height: 1;">&times;</button>
-        </div>
-    </div>
-    
-    <!-- Chat Messages -->
-    <div id="aiChatMessages" style="flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; font-size: 0.88rem;">
-        <!-- Messages loaded dynamically -->
-    </div>
-    
-    <!-- Context Indicator -->
-    <div id="aiChatContext" style="padding: 6px 12px; background: rgba(30, 41, 59, 0.6); border-top: 1px solid var(--border); font-size: 0.75rem; color: var(--blue); display: flex; justify-content: space-between; align-items: center;">
-        <span id="aiContextLabel">Global search context active</span>
-        <button id="aiContextClearBtn" onclick="clearAiContext()" style="background: none; border: none; color: #f87171; cursor: pointer; font-size: 0.75rem; display: none;">Clear</button>
-    </div>
-    
-    <!-- Chat Chips / Quick Suggestions -->
-    <div style="display: flex; gap: 8px; padding: 6px 12px 10px; background: rgba(13, 17, 23, 0.8); border-top: 1px solid rgba(255,255,255,0.02); overflow-x: auto; white-space: nowrap; scrollbar-width: none; -ms-overflow-style: none;">
-        <button onclick="sendQuickAiQuery('suggest')" class="lang-btn" style="padding: 6px 12px; border-radius: 20px; font-size: 0.72rem; flex-shrink: 0; background: rgba(139,92,246,0.12); border:1px solid rgba(139,92,246,0.3); color:#c084fc;" id="chipSuggestText">🚀 Suggest Hot Repos</button>
-        <button onclick="sendQuickAiQuery('explain')" class="lang-btn" style="padding: 6px 12px; border-radius: 20px; font-size: 0.72rem; flex-shrink: 0; background: rgba(249,115,22,0.12); border:1px solid rgba(249,115,22,0.3); color:#fb923c;" id="chipExplainText">🔥 Explain Trends</button>
-        <button onclick="sendQuickAiQuery('digest')" class="lang-btn" style="padding: 6px 12px; border-radius: 20px; font-size: 0.72rem; flex-shrink: 0; background: rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.3); color:#34d399;" id="chipDigestText">📋 Daily Digest</button>
-        <button onclick="sendQuickAiQuery('help')" class="lang-btn" style="padding: 6px 12px; border-radius: 20px; font-size: 0.72rem; flex-shrink: 0; background: rgba(255,255,255,0.03); border:1px solid var(--border); color:var(--text-dim);" id="chipHelpText">❓ Help Guide</button>
-    </div>
-
-    <!-- Chat Input -->
-    <div style="padding: 12px; border-top: 1px solid var(--border); background: rgba(13, 17, 23, 0.8); display: flex; gap: 8px; align-items: center;">
-        <input type="text" id="aiChatInput" placeholder="Ask anything..." style="flex: 1; padding: 10px 14px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 0.85rem; font-family: inherit; outline: none;" onkeydown="if(event.key==='Enter')sendAiChatMessage()">
-        <button onclick="sendAiChatMessage()" id="aiChatSendBtn" style="padding: 10px 14px; background: var(--gradient); border: none; border-radius: 10px; color: white; cursor: pointer; font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; justify-content: center;">Send</button>
-    </div>
-</div>
-
-<script>
-const LANG_COLORS = {
-    "Python":"#3572A5","JavaScript":"#f1e05a","TypeScript":"#3178c6",
-    "Rust":"#dea584","Go":"#00ADD8","Java":"#b07219","C++":"#f34b7d",
-    "C":"#555","C#":"#178600","Swift":"#F05138","Kotlin":"#A97BFF",
-    "Ruby":"#701516","PHP":"#4F5D95","Shell":"#89e051","Dart":"#00B4AB",
-};
-
-const T = {
-    en: {
-        title: "🔥 GitHub Trending",
-        subtitle: "Discover the hottest repositories right now",
-        searchPlaceholder: "Search repositories...",
-        duration: { day: "Today", week: "This Week", month: "This Month", year: "This Year" },
-        allLanguages: "All Languages",
-        sort: { stars: "⭐ Stars", forks: "🍴 Forks", updated: "🕐 Updated", hotness: "🔥 Hotness" },
-        source: { api: "GitHub API", trending: "Trending Page" },
-        minStars: "⭐ Min:",
-        refresh: "Refresh",
-        found: "repositories found",
-        autoRefresh: "Auto-refresh (60s)",
-        loading: "Loading trending repositories...",
-        noRepos: "No repos found",
-        tryFilters: "Try different filters",
-        error: "Error",
-        tryAgain: "Try Again",
-        footer: 'Powered by <a href="https://docs.github.com/en/rest" target="_blank">GitHub API</a> • Built with 🔥 GitHub Trending CLI',
-        noDesc: "No description",
-        starsLabel: { day: "stars today", week: "stars this week", month: "stars this month", year: "stars this year" },
-        tweetsTitle: "📊 Repo Details Hub",
-        openTwitter: "Open in X/Twitter",
-        simulated: "Simulated",
-        noTweets: "No tweets found",
-        errorTweets: "Error loading tweets",
-        analytics: "📊 Analytics",
-        chartLang: "Languages Distribution",
-        chartStars: "Top Repositories by Stars",
-        statRepos: "Total Repositories",
-        statAvgStars: "Average Stars",
-        statTopLang: "Top Language",
-        noData: "No Data",
-        limitLabel: "Limit:",
-        limitOptions: { 10: "10 Repos", 25: "25 Repos", 50: "50 Repos", 100: "100 Repos", 250: "250 Repos", 500: "500 Repos" },
-        aiBubbleTitle: "Gemini AI Agent",
-        aiOnlineStatus: "Online • Ready to assist",
-        aiPlaceholder: "Ask anything about trending repos...",
-        aiSend: "Send",
-        aiGlobalContext: "Global context: analyzing current page",
-        aiRepoContext: "Context: analyzing {name}",
-        aiClearContext: "Reset to Global",
-        aiHelpGreeting: "Hello! I am your Gemini AI Coding Agent. Ask me questions about the trending repositories currently loaded on this page, or click 🤖 AI on any repository card to summarize it!",
-        apiKeyTitle: "Gemini API Key Settings",
-        apiKeyDesc: "Provide your Google Gemini API key to enable AI features. It is stored locally in your browser.",
-        apiKeyPlaceholder: "Enter Gemini API Key...",
-        apiKeySave: "Save Key",
-        apiKeyCancel: "Cancel",
-        apiKeySavedAlert: "API Key saved successfully!",
-        aiButtonLabel: "AI",
-        aiLoading: "Thinking...",
-        sidebarTrendsTitle: "🔥 Dev Community Trends",
-        sidebarAiTipText: "Click 🤖 AI on any repository to get a quick summary, installation tips, and technical architecture reviews instantly.",
-        popularTopics: "Popular Topics:",
-        minStarsOptions: {
-            0: "Any Stars",
-            100: "> 100 ⭐",
-            1000: "> 1k ⭐",
-            5000: "> 5k ⭐",
-            10000: "> 10k ⭐",
-            50000: "> 50k ⭐",
-            "custom": "Custom..."
-        },
-        modalAltSearch: "Alt Search:",
-        modalAiOpinion: "🤖 AI Sentiment",
-        modalAiOpinionLoading: "Analyzing community discussions...",
-        modalAiOpinionHeader: "🤖 AI Community Sentiment Analysis",
-        advToggle: "Advanced",
-        advTopic: "Topic / Tag",
-        advAuthor: "Owner / Author",
-        advMinForks: "Min Forks",
-        advMaxStars: "Max Stars",
-        advExcludeOrg: "Exclude Big Tech",
-        presetDefault: "🔍 Default Search",
-        presetSecurity: "🛡️ Security & Audits",
-        presetBypasses: "🔓 Bypasses & Hacks",
-        presetHidden: "👁️ Hidden / Obscure",
-        presetNetwork: "🌐 Network & Proxy",
-        presetObscureAuthors: "👤 Obscure / Independent Authors",
-        chipSuggest: "🚀 Suggest Hot Repos",
-        chipExplain: "🔥 Explain Trends",
-        chipDigest: "📋 Daily Digest",
-        chipHelp: "❓ Help Guide",
-        twitterProxy: "Twitter Proxy",
-        twitterProxyOptions: {
-            "direct": "X.com (Direct)",
-            "https://xcancel.com": "xcancel.com (Proxy)",
-            "https://nitter.catsarch.com": "nitter.catsarch.com",
-            "https://nitter.tiekoetter.com": "nitter.tiekoetter.com",
-            "https://nitter.kareem.one": "nitter.kareem.one"
-        }
-    },
-    ru: {
-        title: "🔥 Тренды GitHub",
-        subtitle: "Открывайте самые популярные репозитории прямо сейчас",
-        searchPlaceholder: "Поиск репозиториев...",
-        duration: { day: "Сегодня", week: "На этой неделе", month: "В этом месяце", year: "В этом году" },
-        allLanguages: "Все языки",
-        sort: { stars: "⭐ Звезды", forks: "🍴 Форки", updated: "🕐 Обновлено", hotness: "🔥 Горячие" },
-        source: { api: "GitHub API", trending: "Страница трендов" },
-        minStars: "⭐ Мин:",
-        refresh: "Обновить",
-        found: "репозиториев найдено",
-        autoRefresh: "Автообновление (60с)",
-        loading: "Загрузка трендовых репозиториев...",
-        noRepos: "Репозитории не найдены",
-        tryFilters: "Попробуйте другие фильтры",
-        error: "Ошибка",
-        tryAgain: "Повторить",
-        footer: 'Работает на <a href="https://docs.github.com/en/rest" target="_blank">GitHub API</a> • Создано с помощью 🔥 GitHub Trending CLI',
-        noDesc: "Нет описания",
-        starsLabel: { day: "звезд сегодня", week: "звезд на этой неделе", month: "звезд в этом месяце", year: "звезд в этом году" },
-        tweetsTitle: "📊 Панель информации о проекте",
-        openTwitter: "Открыть в X/Twitter",
-        simulated: "Смоделировано",
-        noTweets: "Упоминаний не найдено",
-        errorTweets: "Ошибка при загрузке твитов",
-        analytics: "📊 Аналитика",
-        chartLang: "Распределение по языкам",
-        chartStars: "Топ репозиториев по звездам",
-        statRepos: "Всего репозиториев",
-        statAvgStars: "Среднее число звезд",
-        statTopLang: "Популярный язык",
-        noData: "Нет данных",
-        limitLabel: "Лимит:",
-        limitOptions: { 10: "10 репо", 25: "25 репо", 50: "50 репо", 100: "100 репо", 250: "250 репо", 500: "500 репо" },
-        aiBubbleTitle: "ИИ Агент Gemini",
-        aiOnlineStatus: "В сети • Готов помочь",
-        aiPlaceholder: "Спросите меня о трендах...",
-        aiSend: "Отправить",
-        aiGlobalContext: "Глобальный контекст: анализ страницы",
-        aiRepoContext: "Контекст: анализ {name}",
-        aiClearContext: "Сбросить к глобальному",
-        aiHelpGreeting: "Привет! Я твой ИИ-помощник Gemini. Задавай мне вопросы о текущих трендовых репозиториях на странице или нажми 🤖 ИИ на карточке любого репозитория, чтобы получить его краткую сводку!",
-        apiKeyTitle: "Настройки ключа Gemini API",
-        apiKeyDesc: "Введите ваш Google Gemini API ключ для работы ИИ-агента. Он сохраняется локально в вашем браузере.",
-        apiKeyPlaceholder: "Введите Gemini API Ключ...",
-        apiKeySave: "Сохранить",
-        apiKeyCancel: "Отмена",
-        apiKeySavedAlert: "API Ключ успешно сохранен!",
-        aiButtonLabel: "ИИ",
-        aiLoading: "Думаю...",
-        sidebarTrendsTitle: "🔥 Тренды сообщества",
-        sidebarAiTipText: "Нажмите 🤖 ИИ на любом репозитории, чтобы мгновенно получить краткое описание, инструкции по установке и технический разбор.",
-        popularTopics: "Популярные темы:",
-        minStarsOptions: {
-            0: "Любые звезды",
-            100: "> 100 ⭐",
-            1000: "> 1k ⭐",
-            5000: "> 5k ⭐",
-            10000: "> 10k ⭐",
-            50000: "> 50k ⭐",
-            "custom": "Свой лимит..."
-        },
-        modalAltSearch: "Альтернативный поиск:",
-        modalAiOpinion: "🤖 Анализ мнений ИИ",
-        modalAiOpinionLoading: "Анализирую обсуждения в сообществе...",
-        modalAiOpinionHeader: "🤖 ИИ-анализ мнений сообщества разработчиков",
-        advToggle: "Фильтры",
-        advTopic: "Тема / Тег",
-        advAuthor: "Автор / Организация",
-        advMinForks: "Мин. форков",
-        advMaxStars: "Макс. звёзд",
-        advExcludeOrg: "Без IT-гигантов",
-        presetDefault: "🔍 Поиск по умолчанию",
-        presetSecurity: "🛡️ Безопасность и аудит",
-        presetBypasses: "🔓 Обходы и взломы",
-        presetHidden: "👁️ Скрытые / Малоизвестные",
-        presetNetwork: "🌐 Сети и прокси",
-        presetObscureAuthors: "👤 Скрытые / Независимые авторы",
-        chipSuggest: "🚀 Рекомендовать тренды",
-        chipExplain: "🔥 Объяснить темы",
-        chipDigest: "📋 Дайджест дня",
-        chipHelp: "❓ Справка ИИ",
-        twitterProxy: "Прокси Twitter",
-        twitterProxyOptions: {
-            "direct": "X.com (Напрямую)",
-            "https://xcancel.com": "xcancel.com (Прокси)",
-            "https://nitter.catsarch.com": "nitter.catsarch.com",
-            "https://nitter.tiekoetter.com": "nitter.tiekoetter.com",
-            "https://nitter.kareem.one": "nitter.kareem.one"
-        }
-    }
-};
-
-let currentLang = localStorage.getItem("lang") || "en";
-let autoTimer=null;
-let lastFetchedRepos = null;
-let lastFetchedSource = "api";
-let analyticsVisible = false;
-let langChartInstance = null;
-let starsChartInstance = null;
-let aiHistory = [];
-let aiSelectedRepo = null;
-let activeTagFilter = null;
-
-const $=id=>document.getElementById(id);
-
-$('searchInput').addEventListener('keydown',e=>{if(e.key==='Enter')fetchRepos()});
-$('autoRefresh').addEventListener('change',e=>{
-    if(e.target.checked){fetchRepos();autoTimer=setInterval(fetchRepos,60000)}
-    else{clearInterval(autoTimer);autoTimer=null}
-});
-
-function changeLang(lang) {
-    currentLang = lang;
-    localStorage.setItem("lang", lang);
-    applyLanguage();
-    fetchTwitterTrends();
-}
-
-function applyLanguage() {
-    const lang = currentLang;
-    const t = T[lang];
-    
-    $('titleText').textContent = t.title;
-    $('subtitleText').textContent = t.subtitle;
-    $('searchInput').placeholder = t.searchPlaceholder;
-    
-    // Update duration dropdown options
-    const durSelect = $('durationSelect');
-    durSelect.options[0].text = t.duration.day;
-    durSelect.options[1].text = t.duration.week;
-    durSelect.options[2].text = t.duration.month;
-    durSelect.options[3].text = t.duration.year;
-    
-    // Update language select first option
-    $('languageSelect').options[0].text = t.allLanguages;
-    
-    // Update sort options
-    const sortSelect = $('sortSelect');
-    sortSelect.options[0].text = t.sort.stars;
-    sortSelect.options[1].text = t.sort.forks;
-    sortSelect.options[2].text = t.sort.updated;
-    sortSelect.options[3].text = t.sort.hotness;
-    
-    // Update source options
-    const srcSelect = $('sourceSelect');
-    srcSelect.options[0].text = t.source.api;
-    srcSelect.options[1].text = t.source.trending;
-    
-    // Update limit options
-    const limitSelect = $('limitSelect');
-    if (limitSelect) {
-        for (let i = 0; i < limitSelect.options.length; i++) {
-            const val = limitSelect.options[i].value;
-            limitSelect.options[i].text = t.limitOptions[val] || (val + " Repos");
-        }
-    }
-    
-    // Update min stars options
-    const minStarsSelect = $('minStarsSelect');
-    if (minStarsSelect) {
-        for (let i = 0; i < minStarsSelect.options.length; i++) {
-            const val = minStarsSelect.options[i].value;
-            minStarsSelect.options[i].text = t.minStarsOptions[val] || val;
-        }
-    }
-    
-    // Update other elements
-    $('minStarsLabelText').textContent = t.minStars;
-    $('btnRefresh').textContent = t.refresh;
-    $('repositoriesFoundText').textContent = t.found;
-    $('autoRefreshLabelText').textContent = t.autoRefresh;
-    $('footerText').innerHTML = t.footer;
-    
-    // Sidebar static elements
-    $('sidebarTrendsTitle').innerHTML = `<span style="color: #f97316;">🔥</span> ${t.sidebarTrendsTitle}`;
-    $('sidebarAiTipText').textContent = t.sidebarAiTipText;
-    
-    // Modal static elements
-    $('modalTitleText').textContent = t.tweetsTitle;
-    $('modalTwitterLink').textContent = t.openTwitter;
-    $('modalAltSearchText').textContent = t.modalAltSearch;
-    
-    // Tab translations
-    if ($('tabBtnSummary')) $('tabBtnSummary').textContent = currentLang === 'ru' ? 'ℹ️ Обзор' : 'ℹ️ Summary';
-    if ($('tabBtnDiscussions')) $('tabBtnDiscussions').textContent = currentLang === 'ru' ? '💬 Обсуждения' : '💬 Discussions';
-    if ($('tabBtnSecurity')) $('tabBtnSecurity').textContent = currentLang === 'ru' ? '🛡️ Аудит ИИ' : '🛡️ Security Audit';
-    if ($('tabBtnGrowth')) $('tabBtnGrowth').textContent = currentLang === 'ru' ? '📈 Рост' : '📈 Growth';
-
-    // Archive translations
-    if ($('btnHistory')) $('btnHistory').textContent = currentLang === 'ru' ? '📜 Архив' : '📜 Archive';
-    if ($('historyTitleText')) $('historyTitleText').textContent = currentLang === 'ru' ? '📜 Архив трендов (SQLite)' : '📜 Historical Snapshots (SQLite)';
-    
-    // Analytics panel text elements
-    $('btnAnalytics').textContent = t.analytics;
-    $('chartLangTitle').textContent = t.chartLang;
-    $('chartStarsTitle').textContent = t.chartStars;
-    $('statTotalReposLabel').textContent = t.statRepos;
-    $('statAvgStarsLabel').textContent = t.statAvgStars;
-    $('statTopLangLabel').textContent = t.statTopLang;
-    
-    // Update API Key settings modal
-    $('apiKeyModalTitleText').textContent = t.apiKeyTitle;
-    $('apiKeyModalDescText').textContent = t.apiKeyDesc;
-    $('apiKeyInput').placeholder = t.apiKeyPlaceholder;
-    $('apiKeySaveBtnText').textContent = t.apiKeySave;
-    $('apiKeyCancelBtnText').textContent = t.apiKeyCancel;
-    
-    // Update AI pane text
-    $('aiAgentTitleText').textContent = t.aiBubbleTitle;
-    $('aiAgentStatusText').textContent = t.aiOnlineStatus;
-    $('aiChatInput').placeholder = t.aiPlaceholder;
-    $('aiChatSendBtn').textContent = t.aiSend;
-    $('aiContextClearBtn').textContent = t.aiClearContext;
-    
-    // Update advanced panel translations
-    $('advTopicLabel').textContent = t.advTopic;
-    $('advAuthorLabel').textContent = t.advAuthor;
-    $('advMinForksLabel').textContent = t.advMinForks;
-    if ($('advMaxStarsLabel')) $('advMaxStarsLabel').textContent = t.advMaxStars;
-    if ($('advExcludeOrgLabel')) $('advExcludeOrgLabel').textContent = t.advExcludeOrg;
-    $('btnAdvancedToggle').innerHTML = `⚙️ ${t.advToggle}`;
-
-    // Update presets select options
-    const presetsSelect = $('queryPresetsSelect');
-    if (presetsSelect && presetsSelect.options.length >= 6) {
-        presetsSelect.options[0].textContent = t.presetDefault;
-        presetsSelect.options[1].textContent = t.presetSecurity;
-        presetsSelect.options[2].textContent = t.presetBypasses;
-        presetsSelect.options[3].textContent = t.presetHidden;
-        presetsSelect.options[4].textContent = t.presetNetwork;
-        presetsSelect.options[5].textContent = t.presetObscureAuthors;
-    }
-    
-    // Update chip buttons
-    $('chipSuggestText').textContent = t.chipSuggest;
-    $('chipExplainText').textContent = t.chipExplain;
-    $('chipDigestText').textContent = t.chipDigest;
-    $('chipHelpText').textContent = t.chipHelp;
-
-    // Update topics cloud title
-    const topicsCloudTitle = $('topicsCloudTitle');
-    if (topicsCloudTitle) {
-        topicsCloudTitle.textContent = t.popularTopics;
-    }
-    
-    // Toggle active state on switcher buttons
-    document.querySelectorAll('.lang-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.lang === lang);
-    });
-    
-    // Update twitter proxy select
-    const proxySelect = $('twitterProxySelect');
-    if (proxySelect) {
-        proxySelect.value = localStorage.getItem("twitter_proxy") || "direct";
-        for (let i = 0; i < proxySelect.options.length; i++) {
-            const val = proxySelect.options[i].value;
-            proxySelect.options[i].text = t.twitterProxyOptions[val] || val;
-        }
-    }
-    updateTwitterButtonLabel();
-
-    // Re-render the results if we already have some loaded
-    if (lastFetchedRepos) {
-        renderRepos(lastFetchedRepos, lastFetchedSource);
-    }
-    
-    // Update AI context text dynamically
-    updateAiContextUI();
-}
-
-function getTwitterUrl(target, isSearch = false) {
-    const proxy = localStorage.getItem("twitter_proxy") || "direct";
-    if (isSearch) {
-        const query = encodeURIComponent(target);
-        if (proxy === "direct") {
-            return `https://x.com/search?q=${query}`;
-        } else {
-            return `${proxy}/search?q=${query}`;
-        }
-    }
-    
-    if (!target) return '#';
-    if (proxy === "direct") {
-        let clean = target;
-        const nitterMatch = clean.match(/https?:\/\/([^\/]+)/);
-        if (nitterMatch && nitterMatch[1] !== 'x.com' && nitterMatch[1] !== 'twitter.com') {
-            clean = clean.replace(/https?:\/\/[^\/]+/, 'https://x.com');
-        }
-        return clean;
-    } else {
-        let clean = target;
-        clean = clean.replace(/https?:\/\/[^\/]+/, proxy);
-        return clean;
-    }
-}
-
-function changeTwitterProxy() {
-    const val = $('twitterProxySelect').value;
-    localStorage.setItem("twitter_proxy", val);
-    
-    const modal = $('tweetsModal');
-    if (modal && modal.classList.contains('open')) {
-        const repoName = $('modalSubtitle').textContent;
-        $('modalTwitterLink').href = getTwitterUrl(repoName, true);
-        openTweets(repoName);
-    }
-    
-    updateTwitterButtonLabel();
-    fetchTwitterTrends();
-}
-
-function updateTwitterButtonLabel() {
-    const proxy = localStorage.getItem("twitter_proxy") || "direct";
-    const btn = $('modalTwitterLink');
-    if (!btn) return;
-    
-    if (proxy === "direct") {
-        btn.textContent = currentLang === 'ru' ? "Открыть в X/Twitter" : "Open in X/Twitter";
-    } else {
-        const domain = proxy.replace('https://', '');
-        btn.textContent = currentLang === 'ru' ? `Открыть в ${domain}` : `Open in ${domain}`;
-    }
-}
-
-function onMinStarsChange() {
-    const select = $('minStarsSelect');
-    const customInput = $('minStarsCustomInput');
-    if (select.value === 'custom') {
-        customInput.style.display = 'inline-block';
-        customInput.focus();
-    } else {
-        customInput.style.display = 'none';
-        fetchRepos();
-    }
-}
-
-function toggleAnalytics() {
-    const panel = $('analyticsPanel');
-    const btn = $('btnAnalytics');
-    analyticsVisible = !analyticsVisible;
-    if (analyticsVisible) {
-        panel.style.display = 'flex';
-        btn.classList.add('active');
-        updateCharts();
-    } else {
-        panel.style.display = 'none';
-        btn.classList.remove('active');
-    }
-}
-
-function updateCharts() {
-    if (!analyticsVisible || !lastFetchedRepos || lastFetchedRepos.length === 0) return;
-
-    const repos = lastFetchedRepos;
-    const t = T[currentLang];
-
-    // 1. Calculate statistics
-    const totalRepos = repos.length;
-    const avgStars = Math.round(repos.reduce((sum, r) => sum + (r.stargazers_count || 0), 0) / totalRepos);
-    
-    const langCounts = {};
-    repos.forEach(r => {
-        const l = r.language || (currentLang === 'ru' ? 'Неизвестный' : 'Unknown');
-        langCounts[l] = (langCounts[l] || 0) + 1;
-    });
-    
-    let topLang = t.noData;
-    let maxCount = 0;
-    Object.entries(langCounts).forEach(([l, count]) => {
-        if (count > maxCount) {
-            maxCount = count;
-            topLang = l;
-        }
-    });
-
-    $('statTotalRepos').textContent = totalRepos;
-    $('statAvgStars').textContent = avgStars.toLocaleString();
-    $('statTopLang').textContent = topLang;
-
-    // 2. Setup Chart.js defaults
-    Chart.defaults.color = '#8b949e';
-    Chart.defaults.borderColor = 'rgba(48, 54, 61, 0.4)';
-
-    // 3. Languages Doughnut Chart
-    const langLabels = Object.keys(langCounts);
-    const langData = Object.values(langCounts);
-    const langColors = langLabels.map(l => LANG_COLORS[l] || '#8b949e');
-
-    if (langChartInstance) langChartInstance.destroy();
-    
-    const ctxLang = $('languagesChart').getContext('2d');
-    langChartInstance = new Chart(ctxLang, {
-        type: 'doughnut',
-        data: {
-            labels: langLabels,
-            datasets: [{
-                data: langData,
-                backgroundColor: langColors,
-                borderWidth: 1,
-                borderColor: '#0d1117'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'right',
-                    labels: {
-                        boxWidth: 10,
-                        font: { family: 'Inter', size: 9 }
-                    }
-                }
-            }
-        }
-    });
-
-    // 4. Stars Comparison Bar Chart
-    const topRepos = [...repos].sort((a, b) => (b.stargazers_count || 0) - (a.stargazers_count || 0)).slice(0, 5);
-    const repoLabels = topRepos.map(r => {
-        const name = r.full_name || 'unknown';
-        return name.split('/')[1] || name;
-    });
-    const repoStars = topRepos.map(r => r.stargazers_count || 0);
-
-    if (starsChartInstance) starsChartInstance.destroy();
-
-    const ctxStars = $('starsChart').getContext('2d');
-    starsChartInstance = new Chart(ctxStars, {
-        type: 'bar',
-        data: {
-            labels: repoLabels,
-            datasets: [{
-                label: currentLang === 'ru' ? 'Звезды' : 'Stars',
-                data: repoStars,
-                backgroundColor: 'rgba(96, 165, 250, 0.8)',
-                hoverBackgroundColor: 'rgba(96, 165, 250, 1)',
-                borderRadius: 6,
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: value => value >= 1000 ? (value / 1000) + 'k' : value,
-                        font: { family: 'Inter', size: 9 }
-                    }
-                },
-                x: {
-                    ticks: {
-                        font: { family: 'Inter', size: 9 }
-                    }
-                }
-            }
-        }
-    });
-}
-
-async function fetchRepos(){
-    const c=$('content');
-    const t = T[currentLang];
-    c.innerHTML=`<div class="loading"><div class="spinner"></div><p style="color:var(--text-dim)">${t.loading}</p></div>`;
-    
-    const limitVal = $('limitSelect') ? $('limitSelect').value : '25';
-    const p=new URLSearchParams({
-        duration:$('durationSelect').value,
-        limit:limitVal,
-        sort:$('sortSelect').value,
-        source:$('sourceSelect').value,
-    });
-    const lang=$('languageSelect').value;
-    if(lang)p.set('language',lang);
-    const q=$('searchInput').value.trim();
-    if(q)p.set('query',q);
-    
-    let ms = 0;
-    const selectVal = $('minStarsSelect') ? $('minStarsSelect').value : '0';
-    if (selectVal === 'custom') {
-        ms = parseInt($('minStarsCustomInput').value) || 0;
-    } else {
-        ms = parseInt(selectVal) || 0;
-    }
-    if (ms > 0) p.set('min_stars', ms);
-
-    const topicVal = $('advTopicInput') ? $('advTopicInput').value.trim() : '';
-    if(topicVal) p.set('topic', topicVal);
-
-    const authorVal = $('advAuthorInput') ? $('advAuthorInput').value.trim() : '';
-    if(authorVal) p.set('author', authorVal);
-    
-    const forksVal = $('advMinForksInput') ? $('advMinForksInput').value.trim() : '';
-    if(forksVal) p.set('min_forks', forksVal);
-
-    const maxStarsVal = $('advMaxStarsInput') ? $('advMaxStarsInput').value.trim() : '';
-    if (maxStarsVal) p.set('max_stars', maxStarsVal);
-
-    const excludeOrg = $('advExcludeOrgCheckbox') ? $('advExcludeOrgCheckbox').checked : false;
-    if (excludeOrg) p.set('exclude_org', 'true');
-
-    // Apply preset query adjustments before calling API
-    const preset = $('queryPresetsSelect').value;
-    if (preset === 'security') {
-        p.set('topic', 'security');
-        if (!p.has('query')) p.set('query', 'exploit OR vulnerability OR audit');
-    } else if (preset === 'bypasses') {
-        if (!p.has('query')) p.set('query', 'bypass OR jailbreak OR waf OR evade');
-    } else if (preset === 'hidden') {
-        p.set('min_stars', 5);
-        if (!maxStarsVal) p.set('max_stars', 1000);
-        p.set('exclude_org', 'true');
-        if (!p.has('query')) p.set('query', 'sandbox-escape OR untracked OR experimental');
-    } else if (preset === 'network') {
-        if (!p.has('query')) p.set('query', 'proxy OR tunnels OR reverse-proxy OR dns-over-https');
-    } else if (preset === 'obscure_authors') {
-        if (!maxStarsVal) p.set('max_stars', 500);
-        p.set('exclude_org', 'true');
-        if (!p.has('query')) p.set('query', 'security OR tools OR exploit');
-    }
-
-    try{
-        const r=await fetch('/api/trending?'+p);
-        if (!r.ok) {
-            try {
-                const d = await r.json();
-                showError(d.error || `HTTP ${r.status}: ${r.statusText}`);
-            } catch (jsonErr) {
-                const text = await r.text();
-                showError(`HTTP ${r.status}: ${text.substring(0, 150)}`);
-            }
-            return;
-        }
-        const d=await r.json();
-        if(d.error){showError(d.error);return}
-        lastFetchedRepos = d.repos;
-        lastFetchedSource = d.source;
-        renderRepos(d.repos, d.source);
-        fetchTwitterTrends(); // Dynamically update dev trends sidebar when repositories change
-    }catch(e){
-        console.error("fetchRepos error:", e);
-        showError((currentLang === 'ru' ? 'Не удалось подключиться. Сервер запущен?' : 'Failed to connect. Is the server running?') + '<br><small style="color:var(--text-dim); font-size:0.75rem;">' + esc(e.toString()) + '</small>');
-    }
-}
-
-function renderRepos(repos, source) {
-    const c=$('content');
-    const t = T[currentLang];
-    
-    // Update Tags Cloud first (using the original un-filtered list of repos)
-    updateTagsCloud(repos);
-    
-    // Apply client-side tag filtering if active
-    let displayList = repos;
-    if (activeTagFilter) {
-        displayList = repos.filter(r => {
-            const matchesLang = r.language && r.language.toLowerCase() === activeTagFilter;
-            const matchesTopic = r.topics && r.topics.map(x => x.toLowerCase()).includes(activeTagFilter);
-            return matchesLang || matchesTopic;
-        });
-    }
-    
-    $('resultCount').textContent = displayList.length;
-    
-    let sourceText = '';
-    if (source === 'trending') {
-        sourceText = currentLang === 'ru' ? '(Страница трендов)' : '(Trending page)';
-    } else {
-        sourceText = currentLang === 'ru' ? '(Поиск API)' : '(Search API)';
-    }
-    if (activeTagFilter) {
-        sourceText += ` [Tag: #${activeTagFilter}]`;
-    }
-    $('sourceLabel').textContent = sourceText;
-
-    if(!displayList.length){
-        c.innerHTML=`<div class="error-box"><h3>${t.noRepos}</h3><p>${t.tryFilters}</p></div>`;
-        if (analyticsVisible) updateCharts();
-        return;
-    }
-    c.innerHTML='<div class="grid">'+displayList.map((r,i)=>card(r,i, source)).join('')+'</div>';
-    
-    if (analyticsVisible) {
-        updateCharts();
-    }
-}
-
-function updateTagsCloud(repos) {
-    const container = $('tagsCloud');
-    const list = $('tagsCloudList');
-    if (!container || !list) return;
-    
-    // Extract topics & languages
-    const counts = {};
-    repos.forEach(r => {
-        if (r.language) {
-            const l = r.language.toLowerCase();
-            counts[l] = (counts[l] || 0) + 1;
-        }
-        if (r.topics && Array.isArray(r.topics)) {
-            r.topics.forEach(topic => {
-                const t = topic.toLowerCase();
-                counts[t] = (counts[t] || 0) + 1;
-            });
-        }
-    });
-    
-    // Sort and limit to top 15 tags
-    const sortedTags = Object.entries(counts)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 15);
+<!-- Modal: Repository Details Hub -->
+<div id="tweetsModal" class="modal">
+    <div class="modal-content" style="max-width: 760px; width: 92%;">
+        <span class="close-modal" onclick="closeModal()">&times;</span>
+        <h2 id="modalTitleText" style="font-size:1.25rem; font-weight:700; margin-bottom:4px;">📊 Repo Details Hub</h2>
+        <p id="modalSubtitle" style="color:var(--accent); font-weight:600; margin-bottom:16px; font-size:0.85rem;"></p>
         
-    if (sortedTags.length === 0) {
-        container.style.display = 'none';
-        return;
-    }
-    
-    container.style.display = 'flex';
-    list.innerHTML = sortedTags.map(([tag, count]) => {
-        const isActive = activeTagFilter === tag;
-        const activeStyle = isActive 
-            ? 'background: var(--blue); color: #0d1117; border-color: transparent;' 
-            : 'background: rgba(96, 165, 250, 0.08); color: var(--blue); border: 1px solid rgba(96, 165, 250, 0.15);';
-        return `<span class="tag-chip" style="padding: 4px 10px; border-radius: 12px; font-size: 0.72rem; font-weight: 600; cursor: pointer; transition: all 0.2s; ${activeStyle}" onclick="toggleTagFilter('${esc(tag)}')">${esc(tag)} <span style="opacity: 0.6; font-size: 0.65rem;">(${count})</span></span>`;
-    }).join('');
-}
-
-function toggleTagFilter(tag) {
-    if (activeTagFilter === tag) {
-        activeTagFilter = null;
-    } else {
-        activeTagFilter = tag;
-    }
-    if (lastFetchedRepos) {
-        renderRepos(lastFetchedRepos, lastFetchedSource);
-    }
-}
-
-function showError(m){
-    const t = T[currentLang];
-    $('content').innerHTML=`<div class="error-box"><h3>❌ ${t.error}</h3><p>${m}</p><button class="btn-retry" onclick="fetchRepos()">${t.tryAgain}</button></div>`;
-    $('resultCount').textContent='0';
-}
-
-function card(r,i, source){
-    const n=r.full_name||'unknown';
-    const u=r.html_url||'https://github.com/'+n;
-    const d=r.description||T[currentLang].noDesc;
-    const s=(r.stargazers_count||0).toLocaleString();
-    const f=(r.forks_count||0).toLocaleString();
-    const l=r.language||'';
-    const lc=LANG_COLORS[l]||'#8b949e';
-    const sp=r.stars_period||0;
-    
-    let badge = '';
-    if (sp > 0) {
-        const dur = $('durationSelect').value;
-        const localizedLabel = T[currentLang].starsLabel[dur] || 'stars';
-        badge = `<span class="badge-hot" style="background: rgba(251, 191, 36, 0.15); color: var(--gold); font-size: 0.7rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; white-space: nowrap; flex-shrink: 0;">🔥 ${sp.toLocaleString()} ${localizedLabel}</span>`;
-    }
-    
-    let freshBadge = '';
-    const updatedAtStr = r.updated_at || r.pushed_at;
-    if (updatedAtStr) {
-        try {
-            const diffMs = new Date() - new Date(updatedAtStr);
-            const diffHours = diffMs / (1000 * 60 * 60);
-            if (diffHours <= 24) {
-                freshBadge = `<span class="badge-fresh" style="background: rgba(16, 185, 129, 0.15); color: #34d399; font-size: 0.65rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(16, 185, 129, 0.3); white-space: nowrap; flex-shrink: 0;">⚡ Active</span>`;
-            }
-        } catch (e) {}
-    } else if (source === 'trending' || sp > 0) {
-        freshBadge = `<span class="badge-fresh" style="background: rgba(16, 185, 129, 0.15); color: #34d399; font-size: 0.65rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(16, 185, 129, 0.3); white-space: nowrap; flex-shrink: 0;">⚡ Active</span>`;
-    }
-
-    let badgesHtml = '';
-    if (badge || freshBadge) {
-        badgesHtml = `<div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px;">
-            ${badge}
-            ${freshBadge}
-        </div>`;
-    }
-    
-    const bb=r.built_by||[];
-    const builtByAvatars=bb.length>0?
-        `<div class="built-by">
-            ${bb.map(user=>`<img class="avatar" src="https://github.com/${user}.png?size=40" title="${esc(user)}" alt="${esc(user)}">`).join('')}
-         </div>`:'';
-
-    const isChecked = selectedCompareRepos.find(x => x.full_name === n) ? 'checked' : '';
-    const compareCheckbox = `
-        <div style="position: absolute; top: 12px; right: 12px; display: flex; align-items: center; gap: 6px; background: rgba(13, 17, 23, 0.7); padding: 4px 8px; border-radius: 8px; border: 1px solid var(--border); z-index: 5;" onclick="event.stopPropagation();">
-            <input type="checkbox" id="compare_chk_${i}" class="compare-checkbox" style="cursor: pointer; width: 13px; height: 13px; margin: 0;" ${isChecked} onchange="onCompareCheckChange(this, ${i})">
-            <span style="font-size: 0.65rem; color: var(--text-dim); font-weight: 600; cursor: default; user-select: none;">Compare</span>
+        <!-- Tabs Bar -->
+        <div class="modal-tabs">
+            <button class="modal-tab-btn active" id="tabBtnSummary" onclick="switchModalTab('summary')">ℹ️ Summary</button>
+            <button class="modal-tab-btn" id="tabBtnDiscussions" onclick="switchModalTab('discussions')">💬 Discussions</button>
+            <button class="modal-tab-btn" id="tabBtnSecurity" onclick="switchModalTab('security')">🛡️ Security Audit</button>
+            <button class="modal-tab-btn" id="tabBtnGrowth" onclick="switchModalTab('growth')">📈 Growth</button>
         </div>
-    `;
 
-    return `<div class="card" style="animation-delay:${i*0.05}s; position: relative;">
-        ${compareCheckbox}
-        <div class="card-header" style="padding-right: 80px;">
-            <a class="card-name" href="${u}" target="_blank">${esc(n)}</a>
-            ${badgesHtml}
-        </div>
-        <p class="card-desc">${esc(d)}</p>
-        <div class="card-footer-row">
-            ${builtByAvatars}
-            <div style="display:flex; gap: 6px;">
-                <button class="btn-tweets" style="background:rgba(139,92,246,0.1); border:1px solid rgba(139,92,246,0.2); color:#c084fc; font-weight: 600;" onclick="openRepoDetailsHub(event, ${i})">📊 Info & AI</button>
-            </div>
-        </div>
-        <div class="card-meta" style="margin-top: 14px;">
-            <span class="meta-item meta-stars">⭐ ${s}</span>
-            <span class="meta-item meta-forks">🍴 ${f}</span>
-            ${l ? `<span class="meta-item meta-lang"><span class="lang-dot" style="background:${lc}"></span> ${l}</span>` : ''}
-        </div>
-    </div>`;
-}
-
-async function openTweets(repoName) {
-    const modal = $('tweetsModal');
-    const title = $('modalSubtitle');
-    const container = $('modalTweets');
-    
-    title.textContent = repoName;
-    modal.classList.add('open');
-    container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-    
-    $('modalTwitterLink').href = getTwitterUrl(repoName, true);
-    $('modalGithubSearchLink').href = `https://github.com/search?q=${encodeURIComponent(repoName)}&type=discussions`;
-    $('modalBlueskySearchLink').href = `https://bsky.app/search?q=${encodeURIComponent(repoName)}`;
-    $('modalGoogleSearchLink').href = `https://www.google.com/search?q=${encodeURIComponent(repoName + " github discussions reviews")}`;
-
-    try {
-        const r = await fetch(`/api/tweets?q=${encodeURIComponent(repoName)}`);
-        const d = await r.json();
-        
-        const isMocked = d.tweets && d.tweets.length > 0 && d.tweets[0].is_mock === "true";
-        if (isMocked) {
-            container.innerHTML = `
-                <div style="text-align:center; padding:16px; color:var(--text-dim); font-size:0.85rem; border:1px dashed var(--border); border-radius:12px; margin-bottom:16px; background:rgba(255,255,255,0.02);">
-                    ⚠️ ${currentLang === 'ru' ? 'Связь с Twitter/X временно недоступна. Запускаю ИИ-анализ мнений сообщества о репозитории...' : 'Twitter/X is down. Launching AI community opinion analysis on this repository...'}
-                </div>
+        <!-- Dynamic Tab Contents -->
+        <!-- Tab 1: Summary -->
+        <div id="tabContentSummary" class="tab-panel-content">
+            <div id="modalSummaryAiContent" style="max-height: 380px; overflow-y: auto; padding: 16px; border-radius: 8px; background: rgba(0,0,0,0.15); font-size: 0.85rem; border: 1px solid var(--border);">
                 <div class="loading"><div class="spinner"></div></div>
-            `;
-            setTimeout(() => {
-                analyzeSentimentForRepo();
-            }, 800);
-        } else if (d.tweets && d.tweets.length > 0) {
-            container.innerHTML = d.tweets.map(t => {
-                const badge = t.is_mock === "true" ? `<span class="tweet-badge-mock">${T[currentLang].simulated}</span>` : '';
-                return `<div class="tweet-card">
-                    <div class="tweet-header">
-                        <a class="tweet-author" href="${getTwitterUrl(t.url)}" target="_blank">${esc(t.author)}</a>
-                        <div style="display:flex; gap: 8px; align-items:center;">
-                            ${badge}
-                            <span class="tweet-date">${esc(t.date)}</span>
-                        </div>
-                    </div>
-                    <p class="tweet-text">${esc(t.text)}</p>
-                </div>`;
-            }).join('');
-        } else {
-            container.innerHTML = `<p style="text-align:center;color:var(--text-dim);padding:20px;">${T[currentLang].noTweets}</p>`;
-        }
-    } catch(e) {
-        container.innerHTML = `<p style="text-align:center;color:#f87171;padding:20px;">${T[currentLang].errorTweets}</p>`;
-    }
-}
-
-async function analyzeSentimentForRepo() {
-    const repoName = $('modalSubtitle').textContent;
-    const container = $('modalTweets');
-    const t = T[currentLang];
-    
-    container.innerHTML = `<div class="loading"><div class="spinner" style="margin-bottom:8px;"></div><p style="color:var(--text-dim);font-size:0.82rem;">${t.modalAiOpinionLoading}</p></div>`;
-    
-    const repoObj = lastFetchedRepos ? lastFetchedRepos.find(r => (r.full_name || r.name) === repoName) : null;
-    const desc = repoObj ? repoObj.description : "";
-    const lang = repoObj ? repoObj.language : "";
-    
-    const query = currentLang === 'ru'
-        ? `Каковы отзывы разработчиков, общее мнение (sentiment) и обсуждения вокруг репозитория '${repoName}' на GitHub, Reddit и в соцсетях? Что людям нравится, а что критикуют? Сделай структурированный и краткий разбор мнений сообщества на русском языке.`
-        : `What are the developer reviews, general sentiment, and discussions around the repository '${repoName}' on GitHub, Reddit, and social media? What do people like, and what are the criticisms? Provide a structured, concise analysis of community opinions in English.`;
-        
-    const key = localStorage.getItem("gemini_api_key") || "";
-    const payload = {
-        name: repoName,
-        description: desc,
-        language: lang,
-        query: query
-    };
-    
-    try {
-        const headers = {
-            'Content-Type': 'application/json'
-        };
-        if (key) {
-            headers['X-Gemini-Key'] = key;
-        }
-        
-        const r = await fetch('/api/ai/summarize', {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify(payload)
-        });
-        
-        const d = await r.json();
-        
-        if (d.error) {
-            container.innerHTML = `<p style="text-align:center;color:#f87171;padding:20px;">❌ Error: ${esc(d.error)}</p>`;
-            if (d.error.includes("Missing GEMINI_API_KEY")) {
-                openApiKeyModal();
-            }
-        } else if (d.summary) {
-            container.innerHTML = `
-                <div style="background: rgba(124, 58, 237, 0.08); border: 1px solid rgba(124, 58, 237, 0.25); border-radius: 12px; padding: 16px; margin-bottom: 12px; backdrop-filter: blur(10px);">
-                    <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 12px; color: #c084fc; display:flex; align-items:center; gap:6px;">
-                        <span>📊</span> ${t.modalAiOpinionHeader}
-                    </h4>
-                    <div style="font-size:0.9rem; line-height:1.5; color:var(--text); word-break:break-word; text-align:left;">
-                        ${renderMarkdown(d.summary)}
-                    </div>
-                </div>
-            `;
-        }
-    } catch (e) {
-        container.innerHTML = `<p style="text-align:center;color:#f87171;padding:20px;">❌ Failed: ${e.message}</p>`;
-    }
-}
-
-function closeModal() {
-    $('tweetsModal').classList.remove('open');
-}
-
-// AI Agent JS Logic
-function toggleAiChat() {
-    const pane = $('aiChatPane');
-    const isVisible = pane.style.display === 'flex';
-    pane.style.display = isVisible ? 'none' : 'flex';
-    
-    if (!isVisible && $('aiChatMessages').children.length === 0) {
-        resetAiChat();
-    }
-}
-
-function resetAiChat() {
-    aiHistory = [];
-    const t = T[currentLang];
-    $('aiChatMessages').innerHTML = `
-        <div style="background: rgba(124, 58, 237, 0.1); border: 1px solid rgba(124, 58, 237, 0.2); padding: 12px; border-radius: 12px; line-height: 1.4; color: var(--text);">
-            ${t.aiHelpGreeting}
+            </div>
         </div>
-    `;
-    updateAiContextUI();
-}
 
-function updateAiContextUI() {
-    const clearBtn = $('aiContextClearBtn');
-    const labelText = $('aiContextLabel');
-    const t = T[currentLang];
-    
-    if (aiSelectedRepo) {
-        labelText.textContent = t.aiRepoContext.replace('{name}', aiSelectedRepo.full_name || aiSelectedRepo.name);
-        clearBtn.style.display = 'inline-block';
-    } else {
-        labelText.textContent = t.aiContextLabel || t.aiGlobalContext;
-        labelText.textContent = t.aiGlobalContext;
-        clearBtn.style.display = 'none';
-    }
-}
-
-function clearAiContext() {
-    aiSelectedRepo = null;
-    updateAiContextUI();
-}
-
-function openApiKeyModal() {
-    $('apiKeyModal').classList.add('open');
-    $('apiKeyInput').value = localStorage.getItem("gemini_api_key") || "";
-}
-
-function closeApiKeyModal() {
-    $('apiKeyModal').classList.remove('open');
-}
-
-function saveApiKey() {
-    const key = $('apiKeyInput').value.trim();
-    localStorage.setItem("gemini_api_key", key);
-    closeApiKeyModal();
-    alert(T[currentLang].apiKeySavedAlert);
-    if (key && aiHistory.length === 0) {
-        resetAiChat();
-    }
-}
-
-function triggerRepoAi(event, index) {
-    event.stopPropagation();
-    if (!lastFetchedRepos || !lastFetchedRepos[index]) return;
-    
-    aiSelectedRepo = lastFetchedRepos[index];
-    const pane = $('aiChatPane');
-    pane.style.display = 'flex'; // Ensure it is open
-    
-    updateAiContextUI();
-    
-    // Auto-generate query to summarize
-    const repoName = aiSelectedRepo.full_name || aiSelectedRepo.name;
-    const initialQuery = currentLang === 'ru' 
-        ? `Сделай краткий обзор репозитория ${repoName}`
-        : `Provide a quick summary of repository ${repoName}`;
-    
-    appendAiMessage('user', initialQuery);
-    executeAiQuery(initialQuery);
-}
-
-function appendAiMessage(role, text) {
-    const container = $('aiChatMessages');
-    const isUser = role === 'user';
-    const messageBg = isUser ? 'rgba(249, 115, 22, 0.15)' : 'rgba(255, 255, 255, 0.05)';
-    const borderCol = isUser ? 'rgba(249, 115, 22, 0.3)' : 'var(--border)';
-    const align = isUser ? 'align-self: flex-end; max-width: 85%;' : 'align-self: flex-start; max-width: 85%;';
-    
-    const div = document.createElement('div');
-    div.style = `${align} background: ${messageBg}; border: 1px solid ${borderCol}; padding: 10px 14px; border-radius: 12px; color: var(--text); line-height: 1.4; word-break: break-word; text-align: left; margin-bottom: 6px;`;
-    div.innerHTML = renderMarkdown(text);
-    
-    container.appendChild(div);
-    container.scrollTop = container.scrollHeight;
-}
-
-function renderMarkdown(text) {
-    // Simple markdown renderer
-    let html = esc(text);
-    
-    // Replace code blocks: ```code```
-    html = html.replace(/```([\s\S]*?)```/g, '<pre style="background:rgba(0,0,0,0.4); padding:10px; border-radius:8px; overflow-x:auto; font-family:monospace; font-size:0.8rem; margin:8px 0; border:1px solid rgba(255,255,255,0.05); white-space:pre-wrap;"><code>$1</code></pre>');
-    
-    // Replace inline code: `code`
-    html = html.replace(/`([^`]+)`/g, '<code style="background:rgba(255,255,255,0.1); padding:2px 4px; border-radius:4px; font-family:monospace; font-size:0.85rem;">$1</code>');
-    
-    // Replace bold: **text**
-    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-    
-    // Replace bullet points starting with * or - or • at the beginning of a line
-    html = html.split('\n').map(line => {
-        const trimmed = line.trim();
-        if (trimmed.startsWith('* ') || trimmed.startsWith('- ') || trimmed.startsWith('• ')) {
-            return `<li style="margin-left: 15px; list-style-type: disc;">${trimmed.substring(2)}</li>`;
-        }
-        return line;
-    }).join('\n');
-    
-    // Replace newlines with <br>
-    html = html.replace(/\n/g, '<br>');
-    return html;
-}
-
-async function sendAiChatMessage() {
-    const input = $('aiChatInput');
-    const query = input.value.trim();
-    if (!query) return;
-    
-    input.value = '';
-    appendAiMessage('user', query);
-    aiHistory.push({ role: 'user', text: query });
-    
-    await executeAiQuery(query);
-}
-
-async function executeAiQuery(query) {
-    const container = $('aiChatMessages');
-    const t = T[currentLang];
-    
-    const typingDiv = document.createElement('div');
-    typingDiv.id = 'aiTypingIndicator';
-    typingDiv.style = 'align-self: flex-start; max-width: 85%; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); padding: 10px 14px; border-radius: 12px; color: var(--text-dim); display: flex; align-items: center; gap: 8px;';
-    typingDiv.innerHTML = `<div class="spinner" style="width:14px; height:14px; border-width:2px; margin:0;"></div> <span>${t.aiLoading}</span>`;
-    container.appendChild(typingDiv);
-    container.scrollTop = container.scrollHeight;
-    
-    const key = localStorage.getItem("gemini_api_key") || "";
-    
-    const payload = {
-        query: query,
-        history: aiHistory.slice(0, -1)
-    };
-    
-    if (aiSelectedRepo) {
-        payload.name = aiSelectedRepo.full_name || aiSelectedRepo.name;
-        payload.description = aiSelectedRepo.description;
-        payload.language = aiSelectedRepo.language;
-    } else if (lastFetchedRepos) {
-        payload.repos = lastFetchedRepos;
-    }
-    
-    try {
-        const headers = {
-            'Content-Type': 'application/json'
-        };
-        if (key) {
-            headers['X-Gemini-Key'] = key;
-        }
-        
-        const r = await fetch('/api/ai/summarize', {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify(payload)
-        });
-        
-        const d = await r.json();
-        
-        const indicator = $('aiTypingIndicator');
-        if (indicator) indicator.remove();
-        
-        if (d.error) {
-            appendAiMessage('model', `❌ Error: ${d.error}`);
-            if (d.error.includes("Missing GEMINI_API_KEY")) {
-                openApiKeyModal();
-            }
-        } else if (d.summary) {
-            appendAiMessage('model', d.summary);
-            aiHistory.push({ role: 'model', text: d.summary });
-        }
-    } catch (e) {
-        const indicator = $('aiTypingIndicator');
-        if (indicator) indicator.remove();
-        appendAiMessage('model', `❌ Failed: ${e.message}`);
-    }
-}
-
-// Fetch Twitter Trends
-async function fetchTwitterTrends() {
-    const container = $('twitterTrendsList');
-    if (!container) return;
-    const t = T[currentLang];
-    
-    try {
-        const r = await fetch('/api/trends');
-        const d = await r.json();
-        
-        if (d.trends && d.trends.length > 0) {
-            container.innerHTML = d.trends.map(tr => {
-                const trendUrl = getTwitterUrl(tr.name, true);
-                return `<a class="trend-item" href="${trendUrl}" target="_blank" onclick="searchByTrend(event, '${esc(tr.name)}')">
-                    <span class="trend-name">${esc(tr.name)}</span>
-                    <span class="trend-tweets">${esc(tr.tweet_count)}</span>
-                </a>`;
-            }).join('');
-        } else {
-            container.innerHTML = `<p style="text-align:center; color:var(--text-dim); font-size:0.8rem; padding:10px;">${currentLang === 'ru' ? 'Не удалось загрузить тренды' : 'No trends available'}</p>`;
-        }
-    } catch (e) {
-        container.innerHTML = `<p style="text-align:center; color:#f87171; font-size:0.8rem; padding:10px;">${currentLang === 'ru' ? 'Ошибка загрузки трендов' : 'Error loading trends'}</p>`;
-    }
-}
-
-function searchByTrend(event, trendName) {
-    event.preventDefault();
-    const searchInput = $('searchInput');
-    if (searchInput) {
-        const query = trendName.startsWith('#') ? trendName.substring(1) : trendName;
-        searchInput.value = query;
-        fetchRepos();
-        
-        // Open AI agent and ask it to explain the trend!
-        const pane = $('aiChatPane');
-        if (pane) {
-            pane.style.display = 'flex';
-            const explainQuery = currentLang === 'ru'
-                ? `Объясни, почему тема ${trendName} сейчас популярна среди разработчиков. Какие репозитории на этой странице к ней относятся и какую пользу они приносят?`
-                : `Explain why the topic ${trendName} is currently trending among developers. Which repositories on this page relate to it and what benefits do they provide?`;
+        <!-- Tab 2: Discussions -->
+        <div id="tabContentDiscussions" class="tab-panel-content" style="display: none;">
+            <div id="modalDiscussionsContainer" style="max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px;">
+                <div class="loading"><div class="spinner"></div></div>
+            </div>
             
-            appendAiMessage('user', explainQuery);
-            executeAiQuery(explainQuery);
-        }
-    }
-}
-
-function toggleAdvancedFilters() {
-    const panel = $('advancedFiltersPanel');
-    const btn = $('btnAdvancedToggle');
-    const isHidden = panel.style.display === 'none';
-    panel.style.display = isHidden ? 'flex' : 'none';
-    btn.classList.toggle('active', isHidden);
-}
-
-function sendQuickAiQuery(type) {
-    const t = T[currentLang];
-    let query = '';
-    
-    if (type === 'suggest') {
-        query = currentLang === 'ru'
-            ? "Проанализируй список репозиториев на этой странице и порекомендуй 3 самых интересных или быстрорастущих проекта. Объясни простыми словами, почему на них стоит обратить внимание."
-            : "Analyze the list of repositories on this page and recommend 3 particularly interesting or fast-growing projects. Explain in simple terms why they are worth looking at.";
-    } else if (type === 'explain') {
-        query = currentLang === 'ru'
-            ? "Какие главные технологические темы или паттерны объединяют трендовые репозитории на этой странице? Сделай краткий обзор текущих направлений развития."
-            : "What are the main technological themes or patterns that unite the trending repositories on this page? Provide a brief summary of the current directions of development.";
-    } else if (type === 'digest') {
-        query = currentLang === 'ru'
-            ? "Сгенерируй технологический дайджест дня по текущим трендовым репозиториям. Расскажи, какие темы сегодня в лидерах, выдели 2-3 ключевых проекта, опиши их архитектуру и практическую пользу для разработчика."
-            : "Generate a daily tech digest based on the current trending repositories. Explain which topics are leading today, highlight 2-3 key projects, and describe their architecture and practical benefits for developers.";
-    } else {
-        query = currentLang === 'ru'
-            ? "Расскажи, какими возможностями ты обладаешь как ИИ-помощник и как ты можешь помочь мне анализировать код и находить полезные проекты?"
-            : "Tell me, what capabilities do you have as an AI assistant and how can you help me analyze code and find useful projects?";
-    }
-    
-    // Ensure AI pane is open
-    const pane = $('aiChatPane');
-    if (pane) pane.style.display = 'flex';
-    
-    appendAiMessage('user', query);
-    aiHistory.push({ role: 'user', text: query });
-    executeAiQuery(query);
-}
-
-window.addEventListener('click', e => {
-    const tweetsModal = $('tweetsModal');
-    if (e.target === tweetsModal) {
-        closeModal();
-    }
-    const apiKeyModal = $('apiKeyModal');
-    if (e.target === apiKeyModal) {
-        closeApiKeyModal();
-    }
-});
-
-function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
-
-function applyPresetQuery() {
-    const preset = $('queryPresetsSelect').value;
-    const searchInput = $('searchInput');
-    const maxStarsInput = $('advMaxStarsInput');
-    const excludeOrgCheckbox = $('advExcludeOrgCheckbox');
-    
-    // Reset defaults to avoid state leaking between preset selections
-    if (maxStarsInput) maxStarsInput.value = '';
-    if (excludeOrgCheckbox) excludeOrgCheckbox.checked = false;
-    
-    if (preset !== 'all') {
-        // Automatically switch source to GitHub API since trending page scraping doesn't support complex search filters
-        const sourceSelect = $('sourceSelect');
-        if (sourceSelect) sourceSelect.value = 'api';
-    }
-
-    if (preset === 'all') {
-        searchInput.value = '';
-    } else if (preset === 'security') {
-        searchInput.value = 'exploit OR vulnerability OR audit';
-    } else if (preset === 'bypasses') {
-        searchInput.value = 'bypass OR jailbreak OR waf OR evade';
-    } else if (preset === 'hidden') {
-        searchInput.value = 'sandbox-escape OR untracked OR experimental';
-        if (maxStarsInput) maxStarsInput.value = '1000';
-        if (excludeOrgCheckbox) excludeOrgCheckbox.checked = true;
-    } else if (preset === 'network') {
-        searchInput.value = 'proxy OR tunnels OR reverse-proxy';
-    } else if (preset === 'obscure_authors') {
-        searchInput.value = 'security OR tools OR exploit';
-        if (maxStarsInput) maxStarsInput.value = '500';
-        if (excludeOrgCheckbox) excludeOrgCheckbox.checked = true;
-    }
-    
-    fetchRepos();
-}
-
-let selectedCompareRepos = [];
-let currentModalTab = 'summary';
-let currentOpenRepoName = '';
-let currentOpenRepoIndex = -1;
-let growthChartInstance = null;
-let currentDetailsRepoObj = null;
-let historyVisible = false;
-
-function onCompareCheckChange(chk, index) {
-    if (!lastFetchedRepos || !lastFetchedRepos[index]) return;
-    const repoObj = lastFetchedRepos[index];
-    const fullName = repoObj.full_name || repoObj.name;
-    
-    if (chk.checked) {
-        if (selectedCompareRepos.length >= 3) {
-            alert(currentLang === 'ru' ? 'Максимум 3 репозитория для сравнения!' : 'Maximum of 3 repositories can be compared!');
-            chk.checked = false;
-            return;
-        }
-        if (!selectedCompareRepos.find(x => x.full_name === fullName)) {
-            selectedCompareRepos.push(repoObj);
-        }
-    } else {
-        selectedCompareRepos = selectedCompareRepos.filter(x => x.full_name !== fullName);
-    }
-    
-    updateCompareBar();
-}
-
-function updateCompareBar() {
-    const bar = $('compareBar');
-    const barText = $('compareBarText');
-    if (!bar || !barText) return;
-    
-    if (selectedCompareRepos.length > 0) {
-        bar.style.display = 'flex';
-        barText.textContent = currentLang === 'ru' 
-            ? `Выбрано: ${selectedCompareRepos.length}` 
-            : `Selected: ${selectedCompareRepos.length}`;
-    } else {
-        bar.style.display = 'none';
-    }
-}
-
-function clearRepoCompare() {
-    selectedCompareRepos = [];
-    document.querySelectorAll('.compare-checkbox').forEach(chk => chk.checked = false);
-    updateCompareBar();
-}
-
-async function runAiComparison() {
-    if (selectedCompareRepos.length < 2) {
-        alert(currentLang === 'ru' ? 'Выберите как минимум 2 репозитория для сравнения!' : 'Please select at least 2 repositories to compare!');
-        return;
-    }
-    
-    const modal = $('compareModal');
-    const container = $('compareModalContent');
-    if (!modal || !container) return;
-    
-    modal.classList.add('open');
-    container.innerHTML = '<div class="loading"><div class="spinner"></div><p style="color: var(--text-dim); font-size:0.85rem; margin-top:8px;">Generating side-by-side AI comparison with Gemini...</p></div>';
-    
-    const api_key = localStorage.getItem("gemini_api_key") || "";
-    const headers = { "Content-Type": "application/json" };
-    if (api_key) headers["X-Gemini-Key"] = api_key;
-    
-    try {
-        const r = await fetch('/api/ai/compare', {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify({ repos: selectedCompareRepos })
-        });
-        const d = await r.json();
-        
-        if (d.error) {
-            container.innerHTML = `<p style="color: var(--red); font-size: 0.88rem; text-align: center;">❌ ${d.error}</p>`;
-            return;
-        }
-        
-        container.innerHTML = renderMarkdown(d.comparison);
-    } catch (e) {
-        container.innerHTML = `<p style="color: var(--red); font-size: 0.85rem;">Error loading comparison: ${e}</p>`;
-    }
-}
-
-function closeCompareModal() {
-    $('compareModal').classList.remove('open');
-}
-
-async function openRepoDetailsHub(event, index) {
-    if (event) event.stopPropagation();
-    if (!lastFetchedRepos || !lastFetchedRepos[index]) return;
-    
-    currentDetailsRepoObj = lastFetchedRepos[index];
-    currentOpenRepoName = currentDetailsRepoObj.full_name || currentDetailsRepoObj.name;
-    currentOpenRepoIndex = index;
-    
-    const modal = $('tweetsModal');
-    if (!modal) return;
-    
-    modal.classList.add('open');
-    
-    const subtitle = $('modalSubtitle');
-    if (subtitle) {
-        subtitle.innerHTML = `<a href="${currentDetailsRepoObj.html_url || 'https://github.com/'+currentOpenRepoName}" target="_blank" style="color: var(--blue); text-decoration: none;">${esc(currentOpenRepoName)}</a>`;
-    }
-    
-    // Clear security audit tab container to original state
-    const secContainer = $('modalSecurityContainer');
-    if (secContainer) {
-        secContainer.innerHTML = `
-            <p style="color: var(--text-dim); text-align: center; font-size: 0.88rem; max-width: 500px;" id="securityIntroText">${currentLang === 'ru' ? 'Запустите автоматический ИИ-аудит зависимостей проекта (package.json, Cargo.toml, requirements.txt, go.mod и др.) для оценки рисков и безопасности.' : 'Run an automated AI audit of the repository\'s dependency manifest (package.json, Cargo.toml, requirements.txt, go.mod, etc.) to evaluate dependency risk and security health.'}</p>
-            <button class="btn-refresh" onclick="runSecurityAudit()" style="padding: 12px 24px; font-size: 0.9rem; font-weight: 600; cursor: pointer; margin-top: 0; background: linear-gradient(135deg, #10b981, #059669); border: none; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);" id="runSecurityAuditBtn">🔍 Run Security Audit</button>
-        `;
-    }
-
-    // Switch to summary tab first
-    switchModalTab('summary');
-}
-
-function switchModalTab(tabId) {
-    currentModalTab = tabId;
-    
-    // Toggle active classes on tab buttons
-    document.querySelectorAll('.modal-tab-btn').forEach(btn => {
-        btn.classList.remove('active');
-        btn.style.color = 'var(--text-dim)';
-        btn.style.borderColor = 'transparent';
-    });
-    
-    const activeBtn = $('tabBtn' + tabId.charAt(0).toUpperCase() + tabId.slice(1));
-    if (activeBtn) {
-        activeBtn.classList.add('active');
-        activeBtn.style.color = 'var(--blue)';
-        activeBtn.style.borderColor = 'var(--blue)';
-    }
-
-    // Toggle active tab content panels
-    document.querySelectorAll('.tab-panel-content').forEach(panel => {
-        panel.style.display = 'none';
-    });
-    
-    const activePanel = $('tabContent' + tabId.charAt(0).toUpperCase() + tabId.slice(1));
-    if (activePanel) {
-        activePanel.style.display = 'block';
-    }
-
-    // Load content dynamically depending on the tab
-    if (tabId === 'summary') {
-        loadSummaryTab();
-    } else if (tabId === 'discussions') {
-        loadSocialDiscussions();
-    } else if (tabId === 'growth') {
-        loadGrowthChart();
-    }
-}
-
-async function loadSummaryTab() {
-    const summaryContent = $('modalSummaryAiContent');
-    if (!summaryContent) return;
-    
-    summaryContent.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-    
-    const api_key = localStorage.getItem("gemini_api_key") || "";
-    const headers = { "Content-Type": "application/json" };
-    if (api_key) headers["X-Gemini-Key"] = api_key;
-    
-    try {
-        const r = await fetch('/api/ai/summarize', {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify({
-                name: currentDetailsRepoObj.full_name || currentDetailsRepoObj.name,
-                description: currentDetailsRepoObj.description,
-                language: currentDetailsRepoObj.language
-            })
-        });
-        const d = await r.json();
-        
-        if (d.error) {
-            summaryContent.innerHTML = `<p style="color: var(--red); font-size: 0.85rem;">${esc(d.error)}</p>`;
-            return;
-        }
-        
-        summaryContent.innerHTML = renderMarkdown(d.summary);
-    } catch (e) {
-        summaryContent.innerHTML = `<p style="color: var(--red); font-size: 0.85rem;">Error fetching summary: ${e}</p>`;
-    }
-}
-
-async function loadSocialDiscussions() {
-    const container = $('modalDiscussionsContainer');
-    if (!container) return;
-    
-    container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-    
-    try {
-        const repoName = currentOpenRepoName;
-        const r = await fetch(`/api/social/discussions?repo=${encodeURIComponent(repoName)}`);
-        const d = await r.json();
-        
-        let html = '';
-        
-        // Hacker News
-        html += `<h4 style="margin: 5px 0; color: #ff6600; font-size: 0.95rem; border-bottom: 1px solid rgba(255,102,0,0.2); padding-bottom: 4px;">🧡 Hacker News</h4>`;
-        if (d.hn && d.hn.length > 0) {
-            html += d.hn.map(item => `
-                <div style="padding: 8px 12px; background: rgba(255,102,0,0.04); border-left: 3px solid #ff6600; border-radius: 4px; margin-bottom: 8px; font-size: 0.85rem;">
-                    <a href="${item.url}" target="_blank" style="color: var(--text); font-weight: 600; text-decoration: none; display: block; margin-bottom: 4px;">${esc(item.title)}</a>
-                    <span style="color: var(--text-dim); font-size: 0.75rem;">⭐ ${item.score} pts • 💬 ${item.comments} comments • 📅 ${item.date}</span>
+            <!-- Alternatives Links & Open Actions -->
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-top:20px; border-top:1px solid var(--border); padding-top:16px;">
+                <div style="display:flex; align-items:center; gap:8px; font-size:0.8rem; color:var(--text-muted);">
+                    <span id="modalAltSearchText">Alt Search:</span>
+                    <a id="modalGithubSearchLink" href="#" target="_blank" style="color:var(--blue); text-decoration:none;">GitHub</a> •
+                    <a id="modalBlueskySearchLink" href="#" target="_blank" style="color:var(--blue); text-decoration:none;">Bluesky</a> •
+                    <a id="modalGoogleSearchLink" href="#" target="_blank" style="color:var(--blue); text-decoration:none;">Google</a>
                 </div>
-            `).join('');
-        } else {
-            html += `<p style="font-size: 0.8rem; color: var(--text-dim); font-style: italic; margin-bottom: 12px;">${currentLang === 'ru' ? 'Обсуждений на Hacker News не найдено.' : 'No Hacker News discussions found.'}</p>`;
-        }
-        
-        // Reddit
-        html += `<h4 style="margin: 15px 0 5px; color: #ff4500; font-size: 0.95rem; border-bottom: 1px solid rgba(255,69,0,0.2); padding-bottom: 4px;">🤖 Reddit</h4>`;
-        if (d.reddit && d.reddit.length > 0) {
-            html += d.reddit.map(item => `
-                <div style="padding: 8px 12px; background: rgba(255,69,0,0.04); border-left: 3px solid #ff4500; border-radius: 4px; margin-bottom: 8px; font-size: 0.85rem;">
-                    <a href="${item.url}" target="_blank" style="color: var(--text); font-weight: 600; text-decoration: none; display: block; margin-bottom: 4px;">${esc(item.title)}</a>
-                    <span style="color: var(--text-dim); font-size: 0.75rem;">⬆️ ${item.score} upvotes • 💬 ${item.comments} comments • 📅 ${item.date}</span>
-                </div>
-            `).join('');
-        } else {
-            html += `<p style="font-size: 0.8rem; color: var(--text-dim); font-style: italic; margin-bottom: 12px;">${currentLang === 'ru' ? 'Постов на Reddit не найдено.' : 'No Reddit posts found.'}</p>`;
-        }
-        
-        // Twitter/X (Nitter)
-        html += `<h4 style="margin: 15px 0 5px; color: var(--blue); font-size: 0.95rem; border-bottom: 1px solid rgba(96,165,250,0.2); padding-bottom: 4px;">💬 Twitter Mentions</h4>`;
-        if (d.twitter && d.twitter.length > 0) {
-            html += d.twitter.map(t => `
-                <div style="padding: 8px 12px; background: rgba(96,165,250,0.03); border-left: 3px solid var(--blue); border-radius: 4px; margin-bottom: 8px; font-size: 0.85rem;">
-                    <div style="display:flex; justify-content:space-between; margin-bottom: 4px;">
-                        <a href="${t.url}" target="_blank" style="color: var(--blue); font-weight: 600; text-decoration: none;">${esc(t.author)}</a>
-                        <span style="color: var(--text-dim); font-size: 0.72rem;">${esc(t.date)}</span>
-                    </div>
-                    <p style="margin: 0; color: var(--text); line-height: 1.4;">${esc(t.text)}</p>
-                </div>
-            `).join('');
-        } else {
-            html += `<p style="font-size: 0.8rem; color: var(--text-dim); font-style: italic;">${currentLang === 'ru' ? 'Упоминаний в Twitter не найдено.' : 'No Twitter mentions found.'}</p>`;
-        }
-        
-        container.innerHTML = html;
-        
-        // Update Alt links in the Discussions panel
-        $('modalTwitterLink').href = getTwitterUrl(repoName, true);
-        $('modalGithubSearchLink').href = `https://github.com/search?q=${encodeURIComponent(repoName)}&type=discussions`;
-        $('modalBlueskySearchLink').href = `https://bsky.app/search?q=${encodeURIComponent(repoName)}`;
-        $('modalGoogleSearchLink').href = `https://www.google.com/search?q=${encodeURIComponent(repoName + " github discussions reviews")}`;
-    } catch (e) {
-        container.innerHTML = `<p style="color: var(--red); font-size: 0.85rem;">Error loading discussions: ${e}</p>`;
-    }
-}
-
-async function runSecurityAudit() {
-    const container = $('modalSecurityContainer');
-    if (!container) return;
-    
-    container.innerHTML = '<div class="loading"><div class="spinner"></div><p style="color: var(--text-dim); font-size:0.85rem; margin-top:8px;">Analyzing manifest file with Gemini AI...</p></div>';
-    
-    const api_key = localStorage.getItem("gemini_api_key") || "";
-    const headers = { "Content-Type": "application/json" };
-    if (api_key) headers["X-Gemini-Key"] = api_key;
-    
-    try {
-        const repoName = currentOpenRepoName;
-        const r = await fetch('/api/ai/security', {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify({ name: repoName })
-        });
-        const d = await r.json();
-        
-        if (d.error) {
-            container.innerHTML = `
-                <div style="display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 20px;">
-                    <p style="color: var(--red); font-size: 0.88rem; text-align: center;">❌ ${d.error}</p>
-                    <button class="btn-retry" onclick="runSecurityAudit()" style="margin-top:0;">Try Again</button>
-                </div>
-            `;
-            return;
-        }
-        
-        container.innerHTML = `
-            <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px dashed var(--border); padding-bottom: 10px; margin-bottom: 12px; width:100%;">
-                <span style="font-size: 0.8rem; color: var(--text-dim);">File audited: <code>${esc(d.file_found)}</code></span>
-                <span style="font-size: 0.8rem; font-weight: 700; color: #10b981; background: rgba(16,185,129,0.1); padding: 2px 8px; border-radius: 4px;">AI Audited</span>
+                <a id="modalTwitterLink" href="#" target="_blank" class="btn btn-sm btn-ghost">Open in X/Twitter</a>
             </div>
-            <div style="font-size: 0.88rem; line-height: 1.5; color: var(--text); width: 100%; text-align: left;">
-                ${renderMarkdown(d.security_audit)}
+        </div>
+
+        <!-- Tab 3: Security Manifest Audit -->
+        <div id="tabContentSecurity" class="tab-panel-content" style="display: none;">
+            <div id="modalSecurityContainer" style="min-height: 220px; max-height: 380px; overflow-y: auto; border-radius: 8px; border: 1px solid var(--border); background: rgba(0,0,0,0.15); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
+                <!-- Filled dynamically -->
             </div>
-        `;
-    } catch (e) {
-        container.innerHTML = `<p style="color: var(--red); font-size: 0.85rem;">Error running audit: ${e}</p>`;
-    }
-}
+        </div>
 
-async function loadGrowthChart() {
-    const canvas = $('growthChart');
-    if (!canvas) return;
-    
-    // Destroy previous chart if exists
-    if (growthChartInstance) {
-        growthChartInstance.destroy();
-        growthChartInstance = null;
-    }
-    
-    const repoName = currentOpenRepoName;
-    try {
-        const r = await fetch(`/api/history/trends?repo=${encodeURIComponent(repoName)}`);
-        const d = await r.json();
-        
-        if (d.error || !d.trends || d.trends.length === 0) {
-            // No data yet, draw a placeholder
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#8b949e';
-            ctx.font = '14px Inter';
-            ctx.textAlign = 'center';
-            ctx.fillText(currentLang === 'ru' ? 'Нет исторических данных для этого репозитория.' : 'No historical tracking data available yet.', canvas.width / 2, canvas.height / 2);
-            return;
-        }
-        
-        const labels = d.trends.map(t => {
-            const date = new Date(t.scraped_at);
-            return date.toLocaleDateString(currentLang === 'ru' ? 'ru-RU' : 'en-US', {month: 'short', day: 'numeric', hour: '2-digit'});
-        });
-        const starsData = d.trends.map(t => t.stars);
-        const hypeData = d.trends.map(t => t.hype_score);
-        
-        growthChartInstance = new Chart(canvas, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        label: 'Stars',
-                        data: starsData,
-                        borderColor: '#fbbf24',
-                        backgroundColor: 'rgba(251, 191, 36, 0.1)',
-                        borderWidth: 2,
-                        tension: 0.3,
-                        yAxisID: 'yStars'
-                    },
-                    {
-                        label: 'Hype Score',
-                        data: hypeData,
-                        borderColor: '#60a5fa',
-                        backgroundColor: 'rgba(96, 165, 250, 0.1)',
-                        borderWidth: 2,
-                        tension: 0.3,
-                        yAxisID: 'yHype'
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        labels: {
-                            color: '#adbac7',
-                            font: { family: 'Inter', size: 11 }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        grid: { color: 'rgba(255,255,255,0.05)' },
-                        ticks: { color: '#768390', font: { family: 'Inter', size: 9 } }
-                    },
-                    yStars: {
-                        position: 'left',
-                        grid: { color: 'rgba(255,255,255,0.05)' },
-                        ticks: { color: '#fbbf24', font: { family: 'Inter', size: 9 } },
-                        title: { display: true, text: 'Stars', color: '#fbbf24' }
-                    },
-                    yHype: {
-                        position: 'right',
-                        grid: { drawOnChartArea: false },
-                        ticks: { color: '#60a5fa', font: { family: 'Inter', size: 9 } },
-                        title: { display: true, text: 'Hype Score', color: '#60a5fa' }
-                    }
-                }
-            }
-        });
-    } catch (e) {
-        console.error("Failed to load growth chart", e);
-    }
-}
+        <!-- Tab 4: Historical Growth Chart -->
+        <div id="tabContentGrowth" class="tab-panel-content" style="display: none;">
+            <div style="height: 300px; position: relative;">
+                <canvas id="growthChart"></canvas>
+            </div>
+            <p id="growthStatsDesc" style="font-size: 0.72rem; color: var(--text-muted); text-align: center; margin-top: 12px;">
+                Historical snapshots record star velocity and community engagement indices over time.
+            </p>
+        </div>
+    </div>
+</div>
 
-function toggleHistoryPanel() {
-    const panel = $('historyPanel');
-    const btn = $('btnHistory');
-    if (!panel) return;
-    
-    historyVisible = !historyVisible;
-    if (historyVisible) {
-        panel.style.display = 'flex';
-        btn.style.background = 'rgba(96, 165, 250, 0.15)';
-        btn.style.color = 'var(--blue)';
-        fetchHistory();
-    } else {
-        panel.style.display = 'none';
-        btn.style.background = '';
-        btn.style.color = '';
-    }
-}
+<!-- Modal: Google Gemini API Key Settings -->
+<div id="apiKeyModal" class="modal">
+    <div class="modal-content" style="max-width: 420px;">
+        <span class="close-modal" onclick="closeApiKeyModal()">&times;</span>
+        <h3 id="apiKeyModalTitleText" style="font-size:1.1rem; font-weight:700; margin-bottom:12px;">🔑 Gemini API Key Settings</h3>
+        <p style="color:var(--text-dim); font-size:0.8rem; margin-bottom:16px;" id="apiKeyModalDescText">
+            Provide your Google Gemini API key to enable instant repository summarization, comparison, and manifest auditing. The key is stored safely in localStorage.
+        </p>
+        <input type="password" id="apiKeyInput" placeholder="Enter Gemini API Key..." style="width:100%; padding:10px 12px; background:var(--bg-input); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:0.85rem; font-family:inherit; outline:none; margin-bottom:16px;">
+        <div style="display:flex; justify-content:flex-end; gap:8px;">
+            <button onclick="closeApiKeyModal()" class="btn btn-sm btn-ghost" id="apiKeyCancelBtnText">Cancel</button>
+            <button onclick="saveApiKey()" class="btn btn-sm btn-accent" id="apiKeySaveBtnText">Save Key</button>
+        </div>
+    </div>
+</div>
 
-async function fetchHistory() {
-    const container = $('historyTableContainer');
-    if (!container) return;
-    
-    const searchVal = $('historySearchInput') ? $('historySearchInput').value.trim() : '';
-    let url = '/api/history?limit=50';
-    if (searchVal) url += `&search=${encodeURIComponent(searchVal)}`;
-    
-    try {
-        const r = await fetch(url);
-        const d = await r.json();
-        
-        if (d.error || !d.history || d.history.length === 0) {
-            container.innerHTML = `<p style="color:var(--text-dim); text-align:center; padding: 20px;">${currentLang === 'ru' ? 'Архивная история пуста или ничего не найдено.' : 'Archive history is empty or no records match.'}</p>`;
-            return;
-        }
-        
-        let html = `
-            <table class="history-table" style="width:100%; border-collapse: collapse; font-size:0.85rem; text-align:left;">
-                <thead>
-                    <tr style="border-bottom: 2px solid var(--border); color: var(--text-dim);">
-                        <th style="padding: 10px;">Repository</th>
-                        <th style="padding: 10px;">Language</th>
-                        <th style="padding: 10px;">Stars</th>
-                        <th style="padding: 10px;">Forks</th>
-                        <th style="padding: 10px;">Hype Score</th>
-                        <th style="padding: 10px;">Archived At</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
-        
-        d.history.forEach(item => {
-            const date = new Date(item.scraped_at).toLocaleString(currentLang === 'ru' ? 'ru-RU' : 'en-US');
-            html += `
-                <tr style="border-bottom: 1px solid var(--border);">
-                    <td style="padding: 10px;"><a href="${item.html_url}" target="_blank" style="color: var(--blue); text-decoration:none; font-weight:600;">${esc(item.full_name)}</a></td>
-                    <td style="padding: 10px;">${esc(item.language || 'N/A')}</td>
-                    <td style="padding: 10px;">⭐ ${(item.stars || 0).toLocaleString()}</td>
-                    <td style="padding: 10px;">🍴 ${(item.forks || 0).toLocaleString()}</td>
-                    <td style="padding: 10px;">🔥 ${(item.hype_score || 0).toFixed(1)}</td>
-                    <td style="padding: 10px; color: var(--text-dim);">${date}</td>
-                </tr>
-            `;
-        });
-        
-        html += '</tbody></table>';
-        container.innerHTML = html;
-    } catch (e) {
-        container.innerHTML = `<p style="color: var(--red); font-size:0.85rem; padding: 20px;">Error loading history: ${e}</p>`;
-    }
-}
-
-applyLanguage();
-fetchRepos();
-fetchTwitterTrends();
-</script>
+<!-- App Core Script -->
+<script src="/static/js/app.js"></script>
 </body>
 </html>
