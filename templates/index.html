@@ -62,6 +62,9 @@
                     <input type="checkbox" id="deepSearchCheckbox" onchange="fetchRepos()" style="cursor: pointer; width: 13px; height: 13px; accent-color: var(--accent);">
                     <label for="deepSearchCheckbox" style="font-size: 0.72rem; color: var(--text-muted); cursor: pointer; user-select: none; font-weight: 500;" id="deepSearchLabel">🕵️ Скрытый поиск (Deep Search)</label>
                 </div>
+                <button class="btn btn-accent" id="btnGlobalTrends" onclick="showGlobalTrends()" style="margin-top: 10px; width: 100%;">
+                    <span>🔥</span> <span id="btnGlobalTrendsText">Global Git Trends</span>
+                </button>
             </div>
             
             <!-- Query Presets (Synced with hidden queryPresetsSelect for backend compatibility) -->

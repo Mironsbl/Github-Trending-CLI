@@ -94,6 +94,7 @@ const T = {
         chipExplain: "🔥 Explain Trends",
         chipDigest: "📋 Daily Digest",
         chipHelp: "❓ Help Guide",
+        globalTrendsBtn: "Global Git Trends",
         twitterProxy: "Twitter Proxy",
         twitterProxyOptions: {
             "direct": "X.com (Direct)",
@@ -204,6 +205,7 @@ const T = {
         chipExplain: "🔥 Объяснить темы",
         chipDigest: "📋 Дайджест дня",
         chipHelp: "❓ Справка ИИ",
+        globalTrendsBtn: "Глобальные тренды GitHub",
         twitterProxy: "Прокси Twitter",
         twitterProxyOptions: {
             "direct": "X.com (Напрямую)",
@@ -362,6 +364,7 @@ function applyLanguage() {
     // Update other labels
     $('minStarsLabelText').textContent = t.minStars;
     $('btnRefresh').textContent = t.refresh;
+    if ($('btnGlobalTrendsText')) $('btnGlobalTrendsText').textContent = t.globalTrendsBtn;
     if ($('btnResetFilters')) $('btnResetFilters').textContent = t.resetFilters;
     $('repositoriesFoundText').textContent = t.found;
     $('autoRefreshLabelText').textContent = t.autoRefresh;
@@ -869,6 +872,46 @@ function resetAllFilters() {
     
     // Reset active tags cloud filters
     activeTagFilter = null;
+    
+    // Fetch repos
+    fetchRepos();
+}
+
+function showGlobalTrends() {
+    // Reset search query input
+    $('searchInput').value = '';
+    
+    // Reset deep search checkbox
+    const deepSearch = $('deepSearchCheckbox');
+    if (deepSearch) deepSearch.checked = false;
+    
+    // Reset preset to "all" (Default Search)
+    const presetItems = document.querySelectorAll('.preset-item');
+    presetItems.forEach(item => item.classList.remove('active'));
+    const defaultPreset = document.querySelector('.preset-item[data-preset="all"]');
+    if (defaultPreset) defaultPreset.classList.add('active');
+    $('queryPresetsSelect').value = 'all';
+    
+    // Clear advanced inputs
+    if ($('advTopicInput')) $('advTopicInput').value = '';
+    if ($('advAuthorInput')) $('advAuthorInput').value = '';
+    if ($('advMinForksInput')) $('advMinForksInput').value = '';
+    if ($('advMaxStarsInput')) $('advMaxStarsInput').value = '';
+    if ($('advExcludeOrgCheckbox')) $('advExcludeOrgCheckbox').checked = false;
+    
+    // Clear tag cloud active filters
+    activeTagFilter = null;
+    
+    // Reset min stars to any stars
+    $('minStarsSelect').value = '0';
+    const customStars = $('minStarsCustomInput');
+    if (customStars) {
+        customStars.value = '';
+        customStars.style.display = 'none';
+    }
+    
+    // Set source to Trending Page
+    $('sourceSelect').value = 'trending';
     
     // Fetch repos
     fetchRepos();
