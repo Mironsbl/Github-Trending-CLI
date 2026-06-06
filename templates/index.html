@@ -2185,6 +2185,12 @@ function applyPresetQuery() {
     if (maxStarsInput) maxStarsInput.value = '';
     if (excludeOrgCheckbox) excludeOrgCheckbox.checked = false;
     
+    if (preset !== 'all') {
+        // Automatically switch source to GitHub API since trending page scraping doesn't support complex search filters
+        const sourceSelect = $('sourceSelect');
+        if (sourceSelect) sourceSelect.value = 'api';
+    }
+
     if (preset === 'all') {
         searchInput.value = '';
     } else if (preset === 'security') {
