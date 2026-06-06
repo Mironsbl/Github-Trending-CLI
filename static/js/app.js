@@ -2640,7 +2640,7 @@ function generateDevPrompt() {
 window.addEventListener('DOMContentLoaded', () => {
     updateWatchlistBadge();
     
-    // Close digest modal and sidebar on outside click
+    // Close digest modal, sidebar, and AI chat panel on outside click
     window.addEventListener('click', e => {
         const digestModal = $('digestModal');
         if (e.target === digestModal) closeDigestModal();
@@ -2649,6 +2649,12 @@ window.addEventListener('DOMContentLoaded', () => {
         const toggleBtn = $('btnSidebarToggle');
         if (sidebar && sidebar.classList.contains('open') && !sidebar.contains(e.target) && (!toggleBtn || !toggleBtn.contains(e.target))) {
             sidebar.classList.remove('open');
+        }
+        
+        const aiPane = $('aiChatPane');
+        const aiToggleBtn = $('btnAiChatToggle');
+        if (aiPane && !aiPane.classList.contains('closed') && !aiPane.contains(e.target) && (!aiToggleBtn || !aiToggleBtn.contains(e.target))) {
+            aiPane.classList.add('closed');
         }
     });
 });

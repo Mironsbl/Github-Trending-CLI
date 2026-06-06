@@ -448,7 +448,7 @@ body {
 /* Repositories Cards Grid */
 .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 16px;
     margin-bottom: 40px;
 }
@@ -1598,5 +1598,38 @@ body {
         background-position: right 6px center !important;
         background-size: 10px !important;
         padding-right: 20px !important;
+    }
+}
+
+/* Mobile-specific adjustments and overrides */
+@media (max-width: 600px) {
+    .modal-content {
+        padding: 16px;
+        width: 95%;
+        max-height: 90%;
+        overflow-y: auto;
+    }
+    .modal-tabs {
+        gap: 2px;
+    }
+    .modal-tab-btn {
+        padding: 8px 12px;
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .companion-panel {
+        width: 100vw !important;
+        min-width: 100vw !important;
+    }
+    .companion-panel.closed {
+        transform: translateX(100vw);
+    }
+    .sidebar-filters {
+        width: 100vw !important;
+    }
+    #twitterProxySelect {
+        display: none !important;
     }
 }
