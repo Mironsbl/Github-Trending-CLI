@@ -85,11 +85,11 @@ def api_trending():
     min_forks = int(min_forks) if min_forks else None
 
     # Check cache first if not explicitly bypassed
-    if not no_cache and not author and not exclude_org and max_stars is None:
+    if not no_cache and not author and not exclude_org and max_stars is None and not (source == "api" and query):
         cached = utils.read_cache(source, duration, limit, language)
         if cached is not None:
             logger.info("Cache hit for source=%s duration=%s lang=%s", source, duration, language)
-            if query:
+            if query and source == "trending":
                 cached = scraper.search_repos_by_query(query, cached)
             
             # Sort cached results
@@ -156,7 +156,7 @@ def api_trending():
         if repos:
             utils.write_cache(repos, source, duration, limit, language)
 
-        if query:
+        if query and source == "trending":
             repos = scraper.search_repos_by_query(query, repos)
 
         # Sort results before returning
