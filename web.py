@@ -408,9 +408,7 @@ def api_trending():
             for r in repos:
                 r["source"] = "api"
 
-        # Write to cache if results were fetched successfully
-        if repos:
-            utils.write_cache(repos, source, duration, limit, language)
+
 
         if query and source == "trending":
             filtered_repos = scraper.search_repos_by_query(query, repos)
@@ -437,6 +435,41 @@ def api_trending():
         if original_query and repos:
             repos = filter_obscure_repos(repos, original_query)
 
+        # Supplement with Search API if count is below requested limit for trending source
+        if source == "trending" and len(repos) < limit:
+            logger.info("Trending repos count (%d) is below limit (%d). Supplementing from Search API.", len(repos), limit)
+            try:
+                api_repos = github_api.fetch_trending_repos(
+                    duration=duration,
+                    limit=limit * 2,  # Fetch more to ensure we have enough after filtering
+                    language=language,
+                    topic=topic,
+                    sort=api_sort,
+                    min_stars=min_stars,
+                    max_stars=max_stars,
+                    min_forks=min_forks,
+                    token=token,
+                    query_keyword=query,
+                    author=author,
+                    exclude_org=exclude_org,
+                )
+                
+                if original_query and api_repos:
+                    api_repos = filter_obscure_repos(api_repos, original_query)
+                    
+                existing_names = {r.get("full_name", "").lower() for r in repos}
+                for r in api_repos:
+                    r_name = r.get("full_name", "").lower()
+                    if r_name and r_name not in existing_names:
+                        r["source"] = "api_supplement"
+                        repos.append(r)
+                        existing_names.add(r_name)
+                        if len(repos) >= limit:
+                            break
+            except Exception as e:
+                logger.warning("Failed to supplement trending repos from Search API: %s", e)
+
+
         # Sort results before returning
         if sort == "hotness":
             repos = sorted(repos, key=_calculate_hotness, reverse=True)
@@ -446,6 +479,10 @@ def api_trending():
             repos = sorted(repos, key=lambda x: x.get("updated_at") or x.get("pushed_at") or "", reverse=True)
         elif sort == "stars":
             repos = sorted(repos, key=lambda x: x.get("stargazers_count") or x.get("stars") or 0, reverse=True)
+
+        # Write to cache so that the full, filtered, and supplemented list is saved
+        if repos:
+            utils.write_cache(repos, source, duration, limit, language)
 
         return jsonify({
             "repos": repos,
