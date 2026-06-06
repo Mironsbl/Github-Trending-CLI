@@ -156,15 +156,34 @@ def search_repos_by_query(
     query: str,
     repos: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    """Filter repos by keyword in name or description."""
+    """Filter repos by keyword in name or description (supports OR terms)."""
     if not query:
         return repos
-    q = query.lower()
-    return [
-        r for r in repos
-        if q in r.get("full_name", "").lower()
-        or q in (r.get("description") or "").lower()
-    ]
+    
+    import re
+    # Split query by ' OR ' (case-insensitive)
+    terms = [t.strip().lower() for t in re.split(r'\s+or\s+', query, flags=re.IGNORECASE)]
+    # Filter out empty terms
+    terms = [t for t in terms if t]
+    
+    if not terms:
+        return repos
+        
+    filtered = []
+    for r in repos:
+        name_lower = r.get("full_name", "").lower()
+        desc_lower = (r.get("description") or "").lower()
+        
+        # Check if any of the terms are matched
+        match = False
+        for term in terms:
+            if term in name_lower or term in desc_lower:
+                match = True
+                break
+        if match:
+            filtered.append(r)
+            
+    return filtered
 
 
 def fetch_trending_with_fallback(

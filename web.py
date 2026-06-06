@@ -179,6 +179,9 @@ def api_trending():
     except github_api.GitHubAPIError as e:
         logger.error("Error fetching trending repositories: %s", e)
         return jsonify({"error": str(e), "repos": [], "count": 0, "cached": False}), 500
+    except Exception as e:
+        logger.exception("Unhandled error fetching trending repositories: %s", e)
+        return jsonify({"error": f"Internal server error: {str(e)}", "repos": [], "count": 0, "cached": False}), 500
 
 
 @app.route("/api/tweets")

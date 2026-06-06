@@ -633,13 +633,13 @@
         <option value="network">🌐 Network & Proxy</option>
         <option value="obscure_authors">👤 Obscure / Independent Authors</option>
     </select>
-    <select class="filter-select" id="durationSelect">
+    <select class="filter-select" id="durationSelect" onchange="fetchRepos()">
         <option value="day">Today</option>
         <option value="week" selected>This Week</option>
         <option value="month">This Month</option>
         <option value="year">This Year</option>
     </select>
-    <select class="filter-select" id="languageSelect">
+    <select class="filter-select" id="languageSelect" onchange="fetchRepos()">
         <option value="">All Languages</option>
         <option value="python">Python</option>
         <option value="javascript">JavaScript</option>
@@ -654,17 +654,17 @@
         <option value="php">PHP</option>
         <option value="shell">Shell</option>
     </select>
-    <select class="filter-select" id="sortSelect">
+    <select class="filter-select" id="sortSelect" onchange="fetchRepos()">
         <option value="stars">⭐ Stars</option>
         <option value="forks">🍴 Forks</option>
         <option value="updated">🕐 Updated</option>
         <option value="hotness">🔥 Hotness</option>
     </select>
-    <select class="filter-select" id="sourceSelect">
+    <select class="filter-select" id="sourceSelect" onchange="fetchRepos()">
         <option value="api">GitHub API</option>
         <option value="trending">Trending Page</option>
     </select>
-    <select class="filter-select" id="limitSelect">
+    <select class="filter-select" id="limitSelect" onchange="fetchRepos()">
         <option value="10">10 Repos</option>
         <option value="25" selected>25 Repos</option>
         <option value="50">50 Repos</option>
@@ -1579,6 +1579,16 @@ async function fetchRepos(){
 
     try{
         const r=await fetch('/api/trending?'+p);
+        if (!r.ok) {
+            try {
+                const d = await r.json();
+                showError(d.error || `HTTP ${r.status}: ${r.statusText}`);
+            } catch (jsonErr) {
+                const text = await r.text();
+                showError(`HTTP ${r.status}: ${text.substring(0, 150)}`);
+            }
+            return;
+        }
         const d=await r.json();
         if(d.error){showError(d.error);return}
         lastFetchedRepos = d.repos;
@@ -1586,7 +1596,8 @@ async function fetchRepos(){
         renderRepos(d.repos, d.source);
         fetchTwitterTrends(); // Dynamically update dev trends sidebar when repositories change
     }catch(e){
-        showError(currentLang === 'ru' ? 'Не удалось подключиться. Сервер запущен?' : 'Failed to connect. Is the server running?');
+        console.error("fetchRepos error:", e);
+        showError((currentLang === 'ru' ? 'Не удалось подключиться. Сервер запущен?' : 'Failed to connect. Is the server running?') + '<br><small style="color:var(--text-dim); font-size:0.75rem;">' + esc(e.toString()) + '</small>');
     }
 }
 
