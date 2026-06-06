@@ -1325,11 +1325,14 @@ async function executeAiQuery(query) {
     container.scrollTop = container.scrollHeight;
     
     const key = localStorage.getItem("gemini_api_key") || "";
+    const token = localStorage.getItem("github_token") || "";
     
     const payload = {
         query: query,
         history: aiHistory.slice(0, -1)
     };
+    
+    if (token) payload.token = token;
     
     if (aiSelectedRepo) {
         payload.name = aiSelectedRepo.full_name || aiSelectedRepo.name;
@@ -1565,6 +1568,7 @@ async function runAiComparison() {
     container.innerHTML = '<div class="loading"><div class="spinner"></div><p style="color: var(--text-muted); font-size:0.8rem; margin-top:8px;">Generating side-by-side AI comparison with Gemini...</p></div>';
     
     const api_key = localStorage.getItem("gemini_api_key") || "";
+    const token = localStorage.getItem("github_token") || "";
     const headers = { "Content-Type": "application/json" };
     if (api_key) headers["X-Gemini-Key"] = api_key;
     
@@ -1572,7 +1576,10 @@ async function runAiComparison() {
         const r = await fetch('/api/ai/compare', {
             method: 'POST',
             headers: headers,
-            body: JSON.stringify({ repos: selectedCompareRepos })
+            body: JSON.stringify({
+                repos: selectedCompareRepos,
+                token: token
+            })
         });
         const d = await r.json();
         
@@ -2287,6 +2294,7 @@ async function generateDigest() {
         : `Generate a beautiful weekly digest of trending GitHub repositories in Markdown newsletter format. Include:\n\n1. Title with date (## 🔥 GitHub Trending Weekly — date)\n2. Brief intro (1-2 sentences)\n3. For each of the top 10 repos: name with link, 2-3 sentence description, language, stars, why it's worth checking out\n4. "Trends of the Week" section (which technologies/topics dominate)\n5. Conclusion\n\nRepository list:\n${repoList}\n\nFormat: clean Markdown, use emojis, be concise and informative.`;
     
     const key = localStorage.getItem("gemini_api_key") || "";
+    const token = localStorage.getItem("github_token") || "";
     const headers = { 'Content-Type': 'application/json' };
     if (key) headers['X-Gemini-Key'] = key;
     
@@ -2296,7 +2304,8 @@ async function generateDigest() {
             headers: headers,
             body: JSON.stringify({
                 query: query,
-                repos: top10
+                repos: top10,
+                token: token
             })
         });
         const d = await r.json();

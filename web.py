@@ -550,6 +550,122 @@ def api_tweets():
     return jsonify({"tweets": tweets, "cached": False})
 
 
+def _generate_smart_local_response(query_str: str, repos: list[dict], lang: str) -> str:
+    """Generate a high-quality statistical local assistant response when AI is offline."""
+    if not repos:
+        if lang == "ru":
+            return "🤖 **[Локальный ассистент]** Список репозиториев пуст. Пожалуйста, обновите страницу или загрузите проекты."
+        return "🤖 **[Local Assistant]** The repository list is empty. Please refresh or load repositories first."
+        
+    query_lower = query_str.lower() if query_str else ""
+    is_ru = (lang == "ru")
+    
+    # 1. Recommend / Suggest
+    if any(k in query_lower for k in ["рекомендуй", "recommend", "suggest", "интересн"]):
+        sorted_repos = sorted(repos, key=lambda x: x.get("stargazers_count") or x.get("stars") or 0, reverse=True)
+        top3 = sorted_repos[:3]
+        
+        if is_ru:
+            res = "🤖 **[Локальный ассистент]** (Рекомендация на основе статистики)\n\n"
+            res += "Я проанализировал загруженные репозитории и рекомендую обратить внимание на следующие проекты:\n\n"
+            for idx, r in enumerate(top3):
+                name = r.get("full_name") or r.get("name")
+                stars = r.get("stargazers_count") or r.get("stars") or 0
+                forks = r.get("forks_count") or r.get("forks") or 0
+                desc = r.get("description") or "Нет описания."
+                rlang = r.get("language") or "Markdown"
+                res += f"### {idx+1}. [{name}](https://github.com/{name})\n"
+                res += f"* **Язык:** `{rlang}` • **Популярность:** ⭐ {stars:,} • 🍴 {forks:,}\n"
+                res += f"* **Описание:** {desc}\n\n"
+            res += "💡 *Укажите ваш API-ключ Gemini в настройках для получения глубокого ИИ-анализа этих проектов.*"
+            return res
+        else:
+            res = "🤖 **[Local Assistant]** (Recommendation based on statistics)\n\n"
+            res += "I analyzed the loaded repositories and recommend looking at these projects:\n\n"
+            for idx, r in enumerate(top3):
+                name = r.get("full_name") or r.get("name")
+                stars = r.get("stargazers_count") or r.get("stars") or 0
+                forks = r.get("forks_count") or r.get("forks") or 0
+                desc = r.get("description") or "No description available."
+                rlang = r.get("language") or "Markdown"
+                res += f"### {idx+1}. [{name}](https://github.com/{name})\n"
+                res += f"* **Language:** `{rlang}` • **Popularity:** ⭐ {stars:,} • 🍴 {forks:,}\n"
+                res += f"* **Description:** {desc}\n\n"
+            res += "💡 *Add your Gemini API key in settings to get deep AI reviews of these projects.*"
+            return res
+            
+    # 2. Explain Trends
+    elif any(k in query_lower for k in ["темы", "themes", "explain", "паттерны", "обзор"]):
+        lang_counts = {}
+        for r in repos:
+            l = r.get("language")
+            if l:
+                lang_counts[l] = lang_counts.get(l, 0) + 1
+        sorted_langs = sorted(lang_counts.items(), key=lambda x: x[1], reverse=True)
+        top_langs_str = ", ".join([f"**{l}** ({c})" for l, c in sorted_langs[:4]])
+        
+        avg_stars = sum(r.get("stargazers_count") or r.get("stars") or 0 for r in repos) / len(repos)
+        
+        if is_ru:
+            res = "🤖 **[Локальный ассистент]** (Статистический анализ трендов)\n\n"
+            res += f"На основе анализа {len(repos)} загруженных репозиториев:\n\n"
+            res += f"* **Ведущие технологии/языки:** {top_langs_str or 'Не определены'}.\n"
+            res += f"* **Средний уровень популярности:** ⭐ {int(avg_stars):,} звёзд на проект.\n"
+            res += f"* **Активность разработчиков:** Наблюдается повышенный интерес к решениям в области автоматизации и системной разработки.\n\n"
+            res += "💡 *Укажите ваш API-ключ Gemini для подробного семантического обзора и поиска скрытых паттернов ИИ.*"
+            return res
+        else:
+            res = "🤖 **[Local Assistant]** (Statistical trend analysis)\n\n"
+            res += f"Based on the analysis of {len(repos)} loaded repositories:\n\n"
+            res += f"* **Leading technologies/languages:** {top_langs_str or 'N/A'}.\n"
+            res += f"* **Average popularity level:** ⭐ {int(avg_stars):,} stars per project.\n"
+            res += f"* **Developer Activity:** There is a strong community interest in automation and systems development.\n\n"
+            res += "💡 *Add your Gemini API key in settings for a deep semantic overview of these trends.*"
+            return res
+
+    # 3. Daily / Weekly Digest
+    elif any(k in query_lower for k in ["дайджест", "digest"]):
+        sorted_repos = sorted(repos, key=lambda x: x.get("stargazers_count") or x.get("stars") or 0, reverse=True)
+        top3 = sorted_repos[:3]
+        
+        if is_ru:
+            res = "🤖 **[Локальный ассистент]** (Локальный дайджест трендов)\n\n"
+            res += "### 📋 Технологический дайджест дня\n\n"
+            res += "Вот сводка ключевых проектов на основе статистики:\n\n"
+            for r in top3:
+                name = r.get("full_name") or r.get("name")
+                stars = r.get("stargazers_count") or r.get("stars") or 0
+                desc = r.get("description") or "Нет описания."
+                res += f"* **[{name}](https://github.com/{name})** (⭐ {stars:,}) — {desc}\n"
+            res += "\n💡 *Подключите Gemini API в настройках, чтобы генерировать развёрнутые структурированные дайджесты с помощью ИИ.*"
+            return res
+        else:
+            res = "🤖 **[Local Assistant]** (Local trend digest)\n\n"
+            res += "### 📋 Daily Tech Digest\n\n"
+            res += "Here is a statistical summary of today's key projects:\n\n"
+            for r in top3:
+                name = r.get("full_name") or r.get("name")
+                stars = r.get("stargazers_count") or r.get("stars") or 0
+                desc = r.get("description") or "No description available."
+                res += f"* **[{name}](https://github.com/{name})** (⭐ {stars:,}) — {desc}\n"
+            res += "\n💡 *Connect Gemini API in settings to generate full-fledged newsletter digests using AI.*"
+            return res
+            
+    if is_ru:
+        return (
+            f"🤖 **[Локальный ассистент]** (API-ключ Gemini не настроен)\n\n"
+            f"Я могу отвечать на базовые вопросы о загруженном списке проектов ({len(repos)} шт.).\n"
+            f"Например, попросите меня порекомендовать проекты или сделать обзор тем.\n\n"
+            f"💡 *Добавьте ваш API-ключ Gemini в настройках, чтобы разблокировать полноценное общение с ИИ-помощником.*"
+        )
+    return (
+        f"🤖 **[Local Assistant]** (Gemini API key not configured)\n\n"
+        f"I can answer basic statistics-based questions about the loaded projects ({len(repos)} total).\n"
+        f"For example, ask me to recommend projects or summarize technological themes.\n\n"
+        f"💡 *Add your Gemini API key in settings to unlock full AI conversations.*"
+    )
+
+
 @app.route("/api/ai/summarize", methods=["POST"])
 def api_ai_summarize():
     """Use Gemini API to summarize or answer questions about repositories (supports history and global search context)."""
@@ -561,6 +677,7 @@ def api_ai_summarize():
     user_query = data.get("query")
     history = data.get("history") or []
     repos = data.get("repos") or []
+    token = data.get("token") or os.environ.get("GITHUB_TOKEN")
 
     api_key = os.environ.get("GEMINI_API_KEY") or request.headers.get("X-Gemini-Key")
     if not api_key:
@@ -574,12 +691,8 @@ def api_ai_summarize():
             )
             return jsonify({"summary": local_summary})
         elif repos:
-            local_summary = (
-                f"🤖 **[Локальный ассистент]** (API-ключ Gemini не настроен)\n\n"
-                f"Сейчас загружено {len(repos)} репозиториев. "
-                f"Вы можете искать по ним, фильтровать по языкам/звёздам и просматривать твиты.\n\n"
-                f"💡 *Добавьте ваш API-ключ Gemini в настройках, чтобы общаться с ИИ-ассистентом о деталях этих проектов.*"
-            )
+            has_russian = any(c in (user_query or "") for c in "абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ")
+            local_summary = _generate_smart_local_response(user_query, repos, lang="ru" if has_russian else "en")
             return jsonify({"summary": local_summary})
         else:
             return jsonify({"error": "Missing GEMINI_API_KEY. Set it in the settings."}), 400
@@ -589,7 +702,7 @@ def api_ai_summarize():
     readme_content = ""
     if repo_name:
         try:
-            readme_content = _fetch_readme(repo_name)
+            readme_content = _fetch_readme(repo_name, token=token)
             if readme_content:
                 readme_content = readme_content[:20000] # Limit to 20k characters
         except Exception as e:
@@ -705,13 +818,18 @@ def api_ai_summarize():
                     )
                     return jsonify({"summary": local_summary})
                 elif repos:
-                    local_summary = (
+                    has_russian = any(c in (user_query or "") for c in "абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ")
+                    local_summary = _generate_smart_local_response(user_query, repos, lang="ru" if has_russian else "en")
+                    warning_prefix = (
                         f"🤖 **[Локальный ассистент]** (API-лимит превышен / Ошибка {resp.status_code})\n\n"
-                        f"⚠️ Ваш API-ключ Gemini превысил доступный лимит запросов.\n\n"
-                        f"Сейчас загружено {len(repos)} репозиториев. "
-                        f"Вы можете искать по ним, фильтровать по языкам/звёздам и просматривать твиты."
+                        f"⚠️ Ваш API-ключ Gemini временно превысил доступные лимиты запросов.\n"
+                        f"Я подготовил статистический ответ локально:\n\n"
+                        if has_russian else
+                        f"🤖 **[Local Assistant]** (API Quota Exceeded / Error {resp.status_code})\n\n"
+                        f"⚠️ Your Gemini API key has temporarily exceeded available rate limits.\n"
+                        f"Here is a local statistics-based response:\n\n"
                     )
-                    return jsonify({"summary": local_summary})
+                    return jsonify({"summary": warning_prefix + local_summary})
             
             return jsonify({"error": f"Gemini API returned status {resp.status_code}: {resp.text[:200]}"}), 502
     except Exception as e:
@@ -753,16 +871,41 @@ def api_trends():
     return jsonify({"trends": trends, "cached": False})
 
 
-def _fetch_github_file(repo_name: str, filename: str) -> str:
-    """Fetch a specific file from raw GitHub content (tries main, then master)."""
+def _fetch_github_file(repo_name: str, filename: str, token: str | None = None) -> str:
+    """Fetch a specific file using GitHub API (with base64 decoding), fallback to raw content."""
     import requests
-    headers = {"User-Agent": "Mozilla/5.0"}
+    import base64
+    import os
+    resolved_token = token or os.environ.get("GITHUB_TOKEN")
+    headers = {
+        "User-Agent": "Mozilla/5.0",
+        "Accept": "application/vnd.github+json"
+    }
+    if resolved_token:
+        headers["Authorization"] = f"Bearer {resolved_token}"
+        
+    url = f"https://api.github.com/repos/{repo_name}/contents/{filename}"
+    try:
+        r = requests.get(url, headers=headers, timeout=4)
+        if r.status_code == 200:
+            data = r.json()
+            content = data.get("content", "")
+            encoding = data.get("encoding", "")
+            if encoding == "base64" and content:
+                try:
+                    return base64.b64decode(content).decode("utf-8", errors="ignore")
+                except Exception:
+                    pass
+    except Exception as e:
+        logger.warning("GitHub API file fetch failed for %s/%s: %s, trying raw fallback", repo_name, filename, e)
+        
+    # Fallback to raw URLs
     for branch in ["main", "master"]:
         try:
-            url = f"https://raw.githubusercontent.com/{repo_name}/{branch}/{filename}"
-            r = requests.get(url, headers=headers, timeout=3)
-            if r.status_code == 200:
-                return r.text
+            raw_url = f"https://raw.githubusercontent.com/{repo_name}/{branch}/{filename}"
+            resp = requests.get(raw_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=3)
+            if resp.status_code == 200:
+                return resp.text
         except Exception:
             continue
     return ""
@@ -845,6 +988,7 @@ def api_ai_compare():
     import requests
     data = request.json or {}
     repos_list = data.get("repos") or []
+    token = data.get("token") or os.environ.get("GITHUB_TOKEN")
     if not repos_list or len(repos_list) < 2:
         return jsonify({"error": "Please select at least 2 repositories to compare."}), 400
     
@@ -859,7 +1003,7 @@ def api_ai_compare():
         desc = r.get("description", "")
         lang = r.get("language", "")
         
-        readme = _fetch_readme(name)
+        readme = _fetch_readme(name, token=token)
         if readme:
             readme = readme[:8000] # Limit to 8k chars each
             
@@ -904,6 +1048,7 @@ def api_ai_security():
     import requests
     data = request.json or {}
     repo_name = data.get("name")
+    token = data.get("token") or os.environ.get("GITHUB_TOKEN")
     if not repo_name:
         return jsonify({"error": "Missing 'name' in request body"}), 400
 
@@ -925,7 +1070,7 @@ def api_ai_security():
     manifest_content = ""
     found_file = ""
     for filename in manifest_files:
-        content = _fetch_github_file(repo_name, filename)
+        content = _fetch_github_file(repo_name, filename, token=token)
         if content:
             manifest_content = content[:15000] # Limit size
             found_file = filename
