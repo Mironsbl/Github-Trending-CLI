@@ -61,6 +61,168 @@ def _fetch_readme(repo_name: str) -> str:
                 continue
     return ""
 
+import re
+
+def expand_query(query: str) -> str:
+    if not query:
+        return ""
+    
+    # Lowercase for mapping
+    query_lower = query.lower().strip()
+    
+    # 1. Check for exact phrase matches first
+    exact_phrases = {
+        "обход edr": 'in:name,description "edr bypass" OR in:name,description "bypass edr" OR in:name,description "edr evasion" OR in:name,description unhooking',
+        "обход av": 'in:name,description "av bypass" OR in:name,description "bypass av" OR in:name,description "av evasion"',
+        "обход waf": 'in:name,description "waf bypass" OR in:name,description "bypass waf" OR in:name,description "waf evasion"',
+        "обход песочницы": 'in:name,description "sandbox escape" OR in:name,description "sandbox bypass" OR in:name,description "vm detection"',
+        "edr bypass": 'in:name,description "edr bypass" OR in:name,description "bypass edr" OR in:name,description "edr evasion" OR in:name,description unhooking',
+        "av bypass": 'in:name,description "av bypass" OR in:name,description "bypass av" OR in:name,description "av evasion"',
+        "waf bypass": 'in:name,description "waf bypass" OR in:name,description "bypass waf" OR in:name,description "waf evasion"',
+        "sandbox escape": 'in:name,description "sandbox escape" OR in:name,description "sandbox bypass" OR in:name,description "vm detection"',
+        "шаблоны обходы и взломы": 'in:name,description exploit template OR in:name,description bypass template OR in:name,description hack template',
+        "шаблоны обходы взломы": 'in:name,description exploit template OR in:name,description bypass template OR in:name,description hack template',
+    }
+    
+    if query_lower in exact_phrases:
+        return exact_phrases[query_lower]
+
+    # 2. Tokenize the query
+    tokens = re.findall(r'(?:[^\s"]+|"[^"]*")+', query_lower)
+    
+    word_map = {
+        "шаблон": "template",
+        "шаблоны": "template",
+        "обход": "bypass",
+        "обходы": "bypass",
+        "взлом": "exploit",
+        "взломы": "exploit",
+        "уязвимость": "vulnerability",
+        "уязвимости": "vulnerability",
+        "загрузчик": "loader",
+        "инжектор": "injector",
+        "инжекция": "inject",
+        "шеллкод": "shellcode",
+        "пейлоад": "payload",
+        "малварь": "malware",
+        "руткит": "rootkit",
+        "бэкдор": "backdoor",
+        "шифровальщик": "ransomware",
+        "криптор": "crypter",
+        "обфускатор": "obfuscator",
+        "стилер": "stealer",
+        "клиппер": "clipper",
+        "майнер": "miner",
+        "сканер": "scanner",
+        "фишинг": "phishing",
+        "скрытый": "stealth",
+        "обнаружение": "detection",
+        "сеть": "network",
+        "прокси": "proxy",
+        "туннель": "tunnel",
+    }
+    
+    stop_words = {"и", "в", "на", "для", "под", "с", "a", "or", "and", "the", "of", "to", "in", "for", "with", "by"}
+    
+    new_tokens = []
+    
+    for token in tokens:
+        clean_token = token.strip('"').lower()
+        if clean_token in stop_words:
+            continue
+            
+        if clean_token in word_map:
+            new_tokens.append(word_map[clean_token])
+        else:
+            new_tokens.append(token)
+            
+    if new_tokens:
+        return "in:name,description " + " ".join(new_tokens)
+    else:
+        return "in:name,description " + query
+
+
+def expand_query_with_gemini(query: str, api_key: str) -> str:
+    import requests
+    import json
+    
+    prompt = (
+        "You are an expert GitHub search query optimizer. "
+        "The user wants to find obscure/hidden security repositories, PoCs, bypasses, or hacks on GitHub based on their search term.\n"
+        "Your task is to take the user's query (which may be in English, Russian, or mixed) and rewrite it into an advanced, optimized GitHub Search API query using simple boolean operators (AND, OR) and field qualifiers (in:name,description).\n\n"
+        "Rules:\n"
+        "1. Do NOT use parentheses grouping like (exploit OR bypass) because the GitHub parser fails on them. Instead, expand it explicitly like 'in:name,description exploit OR in:name,description bypass'.\n"
+        "2. Translate Russian terms to exact, professional English cybersecurity terms.\n"
+        "3. Focus terms on name/description search (e.g. use 'in:name,description').\n"
+        "4. Keep the query concise and under 150 characters to prevent GitHub query limit errors.\n"
+        "5. Output ONLY the raw optimized query string. Do NOT enclose in markdown backticks, do NOT add comments, do NOT write anything else. Just the query.\n\n"
+        f"User Query: {query}\n"
+        "Optimized GitHub Search Query:"
+    )
+    
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+    headers = {"Content-Type": "application/json"}
+    payload = {
+        "contents": [{"role": "user", "parts": [{"text": prompt}]}]
+    }
+    
+    try:
+        resp = requests.post(url, json=payload, headers=headers, timeout=5)
+        if resp.status_code == 200:
+            result = resp.json()
+            text = result["candidates"][0]["content"]["parts"][0]["text"].strip()
+            text = re.sub(r'^[`"\']+|[`"\']+$', '', text)
+            if text:
+                return text
+    except Exception as e:
+        logger.warning("Gemini query expansion failed: %s", e)
+    
+    return expand_query(query)
+
+
+def filter_obscure_repos(repos: list[dict], original_query: str) -> list[dict]:
+    if not repos:
+        return []
+    
+    query_lower = original_query.lower()
+    has_template_term = any(t in query_lower for t in ["template", "boilerplate", "шаблон", "структура", "пример"])
+    
+    # Exclusions
+    negatives = ["course", "tutorial", "exercise", "practice", "homework", "assignment", "awesome-list", "awesome", "class-", "university", "school", "student", "learn-", "learning-"]
+    if not has_template_term:
+        negatives.extend(["template", "boilerplate", "boiler-plate"])
+        
+    # Dynamically remove any negative word if it (or its Russian equivalent) is mentioned in the query
+    cleaned_negatives = []
+    for neg in negatives:
+        if neg in query_lower:
+            continue
+        if neg == "awesome" and any(w in query_lower for w in ["лучшее", "подборка", "офигенный"]):
+            continue
+        if neg == "tutorial" and any(w in query_lower for w in ["туториал", "обучение", "руководство"]):
+            continue
+        if neg == "course" and any(w in query_lower for w in ["курс", "урок"]):
+            continue
+        cleaned_negatives.append(neg)
+        
+    filtered = []
+    for r in repos:
+        name = (r.get("name") or "").lower()
+        full_name = (r.get("full_name") or "").lower()
+        desc = (r.get("description") or "").lower()
+        topics = [t.lower() for t in r.get("topics", [])]
+        
+        is_spam = False
+        for neg in cleaned_negatives:
+            if neg in name or neg in desc or any(neg in t for t in topics):
+                is_spam = True
+                break
+                
+        if not is_spam:
+            filtered.append(r)
+            
+    return filtered
+
 
 @app.route("/api/trending")
 def api_trending():
@@ -79,10 +241,33 @@ def api_trending():
     author = request.args.get("author") or None
     token = request.args.get("token") or os.environ.get("GITHUB_TOKEN")
     no_cache = request.args.get("no_cache") == "true"
+    deep_search = request.args.get("deep_search") == "true"
 
     min_stars = int(min_stars) if min_stars else None
     max_stars = int(max_stars) if max_stars else None
     min_forks = int(min_forks) if min_forks else None
+
+    original_query = query
+    # Deep/Obscure Search query optimization
+    if query:
+        # Check if there are Russian letters or deep search is checked
+        has_russian = any(c in query for c in "абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ")
+        if deep_search or has_russian:
+            api_key = os.environ.get("GEMINI_API_KEY")
+            if api_key:
+                enhanced_query = expand_query_with_gemini(query, api_key)
+            else:
+                enhanced_query = expand_query(query)
+            logger.info("Rewrote query '%s' to '%s' (deep_search=%s, has_russian=%s)", query, enhanced_query, deep_search, has_russian)
+            query = enhanced_query
+
+    if deep_search:
+        exclude_org = True
+        # Target obscure repositories: stars 2 to 600
+        if min_stars is None:
+            min_stars = 2
+        if max_stars is None:
+            max_stars = 600
 
     # Check cache first if not explicitly bypassed
     if not no_cache and not author and not exclude_org and max_stars is None and not (source == "api" and query):
@@ -158,6 +343,10 @@ def api_trending():
 
         if query and source == "trending":
             repos = scraper.search_repos_by_query(query, repos)
+
+        # Apply local filtering if search query is active
+        if original_query and repos:
+            repos = filter_obscure_repos(repos, original_query)
 
         # Sort results before returning
         if sort == "hotness":

@@ -86,6 +86,7 @@ const T = {
         presetHidden: "👁️ Hidden / Obscure",
         presetNetwork: "🌐 Network & Proxy",
         presetObscureAuthors: "👤 Obscure / Independent Authors",
+        deepSearchLabel: "🕵️ Deep / Obscure Search",
         chipSuggest: "🚀 Suggest Hot Repos",
         chipExplain: "🔥 Explain Trends",
         chipDigest: "📋 Daily Digest",
@@ -190,6 +191,7 @@ const T = {
         presetHidden: "👁️ Скрытые / Малоизвестные",
         presetNetwork: "🌐 Сети и прокси",
         presetObscureAuthors: "👤 Скрытые / Независимые авторы",
+        deepSearchLabel: "🕵️ Скрытый поиск",
         chipSuggest: "🚀 Рекомендовать тренды",
         chipExplain: "🔥 Объяснить темы",
         chipDigest: "📋 Дайджест дня",
@@ -415,6 +417,7 @@ function applyLanguage() {
     $('advMinForksLabel').textContent = t.advMinForks;
     if ($('advMaxStarsLabel')) $('advMaxStarsLabel').textContent = t.advMaxStars;
     if ($('advExcludeOrgLabel')) $('advExcludeOrgLabel').textContent = t.advExcludeOrg;
+    if ($('deepSearchLabel')) $('deepSearchLabel').textContent = t.deepSearchLabel;
     $('btnAdvancedToggle').innerHTML = `⚙️ ${t.advToggle}`;
 
     // Presets
@@ -722,6 +725,9 @@ async function fetchRepos() {
     
     const q = $('searchInput').value.trim();
     if (q) p.set('query', q);
+    
+    const deepSearch = $('deepSearchCheckbox') ? $('deepSearchCheckbox').checked : false;
+    if (deepSearch) p.set('deep_search', 'true');
     
     let ms = 0;
     const selectVal = $('minStarsSelect') ? $('minStarsSelect').value : '0';
@@ -1362,6 +1368,7 @@ function applyPresetQuery(presetValue) {
     const searchInput = $('searchInput');
     const maxStarsInput = $('advMaxStarsInput');
     const excludeOrgCheckbox = $('advExcludeOrgCheckbox');
+    const deepSearchCheckbox = $('deepSearchCheckbox');
     
     // Sync UI elements style class for visual feedback
     document.querySelectorAll('.preset-item').forEach(item => {
@@ -1370,6 +1377,13 @@ function applyPresetQuery(presetValue) {
 
     if (maxStarsInput) maxStarsInput.value = '';
     if (excludeOrgCheckbox) excludeOrgCheckbox.checked = false;
+    if (deepSearchCheckbox) {
+        if (preset === 'bypasses' || preset === 'hidden' || preset === 'obscure_authors') {
+            deepSearchCheckbox.checked = true;
+        } else {
+            deepSearchCheckbox.checked = false;
+        }
+    }
     
     if (preset !== 'all') {
         const sourceSelect = $('sourceSelect');

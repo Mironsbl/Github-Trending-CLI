@@ -55,6 +55,10 @@
                 <div class="search-box">
                     <input type="text" id="searchInput" placeholder="Search repositories...">
                 </div>
+                <div style="margin-top: 8px; display: flex; align-items: center; gap: 6px; padding: 2px 4px;">
+                    <input type="checkbox" id="deepSearchCheckbox" onchange="fetchRepos()" style="cursor: pointer; width: 13px; height: 13px; accent-color: var(--accent);">
+                    <label for="deepSearchCheckbox" style="font-size: 0.72rem; color: var(--text-muted); cursor: pointer; user-select: none; font-weight: 500;" id="deepSearchLabel">🕵️ Скрытый поиск (Deep Search)</label>
+                </div>
             </div>
             
             <!-- Query Presets (Synced with hidden queryPresetsSelect for backend compatibility) -->
