@@ -51,10 +51,11 @@ def fetch_trending_repos(
         GitHubAPIError: On network problems, rate limiting, or unexpected status.
     """
     # If a keyword, author or specific topic search is selected, relax the creation date constraint to allow historical matches.
+    # However, restrict results to repositories active (pushed to) within the duration to avoid stale/dead repositories.
+    since_date = utils.get_since_date(duration)
     if query_keyword or author or topic:
-        query = "created:>1970-01-01"
+        query = f"created:>1970-01-01 pushed:>{since_date}"
     else:
-        since_date = utils.get_since_date(duration)
         query = f"created:>{since_date}"
 
     if query_keyword:
