@@ -35,6 +35,33 @@ def health():
     return jsonify({"status": "healthy"})
 
 
+def _calculate_hotness(r: dict) -> float:
+    """Calculate hotness score (hype index) for sorting."""
+    stars_period = r.get("stars_period") or 0
+    stargazers = r.get("stargazers_count") or r.get("stars") or 0
+    forks = r.get("forks_count") or r.get("forks") or 0
+    if stars_period > 0:
+        return float(stars_period * 10 + forks * 2)
+    else:
+        return float(stargazers * 0.1 + forks * 0.5)
+
+
+def _fetch_readme(repo_name: str) -> str:
+    """Fetch README.md from GitHub raw content (tries main, then master)."""
+    import requests
+    headers = {"User-Agent": "Mozilla/5.0"}
+    for branch in ["main", "master"]:
+        for filename in ["README.md", "readme.md"]:
+            try:
+                url = f"https://raw.githubusercontent.com/{repo_name}/{branch}/{filename}"
+                r = requests.get(url, headers=headers, timeout=3)
+                if r.status_code == 200:
+                    return r.text
+            except Exception:
+                continue
+    return ""
+
+
 @app.route("/api/trending")
 def api_trending():
     """API endpoint for trending repos."""
@@ -60,6 +87,17 @@ def api_trending():
             logger.info("Cache hit for source=%s duration=%s lang=%s", source, duration, language)
             if query:
                 cached = scraper.search_repos_by_query(query, cached)
+            
+            # Sort cached results
+            if sort == "hotness":
+                cached = sorted(cached, key=_calculate_hotness, reverse=True)
+            elif sort == "forks":
+                cached = sorted(cached, key=lambda x: x.get("forks_count") or x.get("forks") or 0, reverse=True)
+            elif sort == "updated":
+                cached = sorted(cached, key=lambda x: x.get("updated_at") or x.get("pushed_at") or "", reverse=True)
+            elif sort == "stars":
+                cached = sorted(cached, key=lambda x: x.get("stargazers_count") or x.get("stars") or 0, reverse=True)
+                
             return jsonify({
                 "repos": cached,
                 "count": len(cached),
@@ -70,6 +108,7 @@ def api_trending():
     logger.info("Cache miss. Fetching from source=%s duration=%s lang=%s", source, duration, language)
 
     try:
+        api_sort = "stars" if sort == "hotness" else sort
         if source == "trending":
             repos = scraper.scrape_trending(
                 duration=duration,
@@ -80,7 +119,7 @@ def api_trending():
                 logger.warning("Scraper failed or returned no results; falling back to Search API")
                 repos = github_api.fetch_trending_repos(
                     duration=duration, limit=limit, language=language,
-                    topic=topic, sort=sort, min_stars=min_stars,
+                    topic=topic, sort=api_sort, min_stars=min_stars,
                     min_forks=min_forks, token=token,
                     query_keyword=query,
                 )
@@ -95,7 +134,7 @@ def api_trending():
                 limit=limit,
                 language=language,
                 topic=topic,
-                sort=sort,
+                sort=api_sort,
                 min_stars=min_stars,
                 min_forks=min_forks,
                 token=token,
@@ -110,6 +149,16 @@ def api_trending():
 
         if query:
             repos = scraper.search_repos_by_query(query, repos)
+
+        # Sort results before returning
+        if sort == "hotness":
+            repos = sorted(repos, key=_calculate_hotness, reverse=True)
+        elif sort == "forks":
+            repos = sorted(repos, key=lambda x: x.get("forks_count") or x.get("forks") or 0, reverse=True)
+        elif sort == "updated":
+            repos = sorted(repos, key=lambda x: x.get("updated_at") or x.get("pushed_at") or "", reverse=True)
+        elif sort == "stars":
+            repos = sorted(repos, key=lambda x: x.get("stargazers_count") or x.get("stars") or 0, reverse=True)
 
         return jsonify({
             "repos": repos,
@@ -162,13 +211,29 @@ def api_ai_summarize():
     if not api_key:
         return jsonify({"error": "Missing GEMINI_API_KEY. Set it in the environment or provide it in settings."}), 400
 
+    # Fetch README.md if we are analyzing a specific repo
+    readme_content = ""
+    if repo_name:
+        try:
+            readme_content = _fetch_readme(repo_name)
+            if readme_content:
+                readme_content = readme_content[:20000] # Limit to 20k characters
+        except Exception as e:
+            logger.warning("Failed to fetch README for %s: %s", repo_name, e)
+
     # 1. Base instruction / context message to set the behavior
     if repo_name:
         context_text = (
             f"You are an AI coding assistant. The user is asking about the GitHub repository '{repo_name}'.\n"
             f"Description: {description}\n"
-            f"Primary Language: {language}\n\n"
-            f"Answer the user's questions or request concisely, accurately, and professionally in Russian. "
+            f"Primary Language: {language}\n"
+        )
+        if readme_content:
+            context_text += f"\n--- README.md ---\n{readme_content}\n--- END OF README.md ---\n"
+            
+        context_text += (
+            f"\nAnswer the user's questions or request concisely, accurately, and professionally in Russian. "
+            f"Focus on practical aspects (installation, main features, usage, architecture) based on the README.md if available. "
             f"If they ask for code, write clean code snippets using Markdown syntax. Avoid unnecessary chit-chat."
         )
     elif repos:

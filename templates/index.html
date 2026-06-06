@@ -291,6 +291,12 @@
             box-shadow: 0 4px 20px rgba(124, 58, 237, 0.3);
         }
 
+        .tag-chip:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(96, 165, 250, 0.2);
+            filter: brightness(1.15);
+        }
+
         .analytics-panel {
             max-width: 1200px;
             margin: 0 auto 30px;
@@ -644,6 +650,7 @@
         <option value="stars">⭐ Stars</option>
         <option value="forks">🍴 Forks</option>
         <option value="updated">🕐 Updated</option>
+        <option value="hotness">🔥 Hotness</option>
     </select>
     <select class="filter-select" id="sourceSelect">
         <option value="api">GitHub API</option>
@@ -695,6 +702,11 @@
     <label class="auto-refresh">
         <input type="checkbox" id="autoRefresh"> <span id="autoRefreshLabelText">Auto-refresh (60s)</span>
     </label>
+</div>
+
+<div class="tags-cloud" id="tagsCloud" style="display:none; margin: 15px auto; max-width: 1200px; padding: 10px 20px; background: rgba(255,255,255,0.01); border: 1px solid var(--border); border-radius: 12px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+    <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-dim); margin-right: 6px;" id="topicsCloudTitle">Popular Topics:</span>
+    <div id="tagsCloudList" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
 </div>
 
 <!-- Analytics Panel -->
@@ -837,6 +849,7 @@
     <div style="display: flex; gap: 8px; padding: 6px 12px 10px; background: rgba(13, 17, 23, 0.8); border-top: 1px solid rgba(255,255,255,0.02); overflow-x: auto; white-space: nowrap; scrollbar-width: none; -ms-overflow-style: none;">
         <button onclick="sendQuickAiQuery('suggest')" class="lang-btn" style="padding: 6px 12px; border-radius: 20px; font-size: 0.72rem; flex-shrink: 0; background: rgba(139,92,246,0.12); border:1px solid rgba(139,92,246,0.3); color:#c084fc;" id="chipSuggestText">🚀 Suggest Hot Repos</button>
         <button onclick="sendQuickAiQuery('explain')" class="lang-btn" style="padding: 6px 12px; border-radius: 20px; font-size: 0.72rem; flex-shrink: 0; background: rgba(249,115,22,0.12); border:1px solid rgba(249,115,22,0.3); color:#fb923c;" id="chipExplainText">🔥 Explain Trends</button>
+        <button onclick="sendQuickAiQuery('digest')" class="lang-btn" style="padding: 6px 12px; border-radius: 20px; font-size: 0.72rem; flex-shrink: 0; background: rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.3); color:#34d399;" id="chipDigestText">📋 Daily Digest</button>
         <button onclick="sendQuickAiQuery('help')" class="lang-btn" style="padding: 6px 12px; border-radius: 20px; font-size: 0.72rem; flex-shrink: 0; background: rgba(255,255,255,0.03); border:1px solid var(--border); color:var(--text-dim);" id="chipHelpText">❓ Help Guide</button>
     </div>
 
@@ -862,7 +875,7 @@ const T = {
         searchPlaceholder: "Search repositories...",
         duration: { day: "Today", week: "This Week", month: "This Month", year: "This Year" },
         allLanguages: "All Languages",
-        sort: { stars: "⭐ Stars", forks: "🍴 Forks", updated: "🕐 Updated" },
+        sort: { stars: "⭐ Stars", forks: "🍴 Forks", updated: "🕐 Updated", hotness: "🔥 Hotness" },
         source: { api: "GitHub API", trending: "Trending Page" },
         minStars: "⭐ Min:",
         refresh: "Refresh",
@@ -908,6 +921,7 @@ const T = {
         aiLoading: "Thinking...",
         sidebarTrendsTitle: "🔥 Dev Community Trends",
         sidebarAiTipText: "Click 🤖 AI on any repository to get a quick summary, installation tips, and technical architecture reviews instantly.",
+        popularTopics: "Popular Topics:",
         minStarsOptions: {
             0: "Any Stars",
             100: "> 100 ⭐",
@@ -926,6 +940,7 @@ const T = {
         advMinForks: "Min Forks",
         chipSuggest: "🚀 Suggest Hot Repos",
         chipExplain: "🔥 Explain Trends",
+        chipDigest: "📋 Daily Digest",
         chipHelp: "❓ Help Guide",
         twitterProxy: "Twitter Proxy",
         twitterProxyOptions: {
@@ -942,7 +957,7 @@ const T = {
         searchPlaceholder: "Поиск репозиториев...",
         duration: { day: "Сегодня", week: "На этой неделе", month: "В этом месяце", year: "В этом году" },
         allLanguages: "Все языки",
-        sort: { stars: "⭐ Звезды", forks: "🍴 Форки", updated: "🕐 Обновлено" },
+        sort: { stars: "⭐ Звезды", forks: "🍴 Форки", updated: "🕐 Обновлено", hotness: "🔥 Горячие" },
         source: { api: "GitHub API", trending: "Страница трендов" },
         minStars: "⭐ Мин:",
         refresh: "Обновить",
@@ -988,6 +1003,7 @@ const T = {
         aiLoading: "Думаю...",
         sidebarTrendsTitle: "🔥 Тренды сообщества",
         sidebarAiTipText: "Нажмите 🤖 ИИ на любом репозитории, чтобы мгновенно получить краткое описание, инструкции по установке и технический разбор.",
+        popularTopics: "Популярные темы:",
         minStarsOptions: {
             0: "Любые звезды",
             100: "> 100 ⭐",
@@ -1006,6 +1022,7 @@ const T = {
         advMinForks: "Мин. форков",
         chipSuggest: "🚀 Рекомендовать тренды",
         chipExplain: "🔥 Объяснить темы",
+        chipDigest: "📋 Дайджест дня",
         chipHelp: "❓ Справка ИИ",
         twitterProxy: "Прокси Twitter",
         twitterProxyOptions: {
@@ -1027,6 +1044,7 @@ let langChartInstance = null;
 let starsChartInstance = null;
 let aiHistory = [];
 let aiSelectedRepo = null;
+let activeTagFilter = null;
 
 const $=id=>document.getElementById(id);
 
@@ -1066,6 +1084,7 @@ function applyLanguage() {
     sortSelect.options[0].text = t.sort.stars;
     sortSelect.options[1].text = t.sort.forks;
     sortSelect.options[2].text = t.sort.updated;
+    sortSelect.options[3].text = t.sort.hotness;
     
     // Update source options
     const srcSelect = $('sourceSelect');
@@ -1137,7 +1156,14 @@ function applyLanguage() {
     // Update chip buttons
     $('chipSuggestText').textContent = t.chipSuggest;
     $('chipExplainText').textContent = t.chipExplain;
+    $('chipDigestText').textContent = t.chipDigest;
     $('chipHelpText').textContent = t.chipHelp;
+
+    // Update topics cloud title
+    const topicsCloudTitle = $('topicsCloudTitle');
+    if (topicsCloudTitle) {
+        topicsCloudTitle.textContent = t.popularTopics;
+    }
     
     // Toggle active state on switcher buttons
     document.querySelectorAll('.lang-btn').forEach(btn => {
@@ -1407,7 +1433,21 @@ async function fetchRepos(){
 function renderRepos(repos, source) {
     const c=$('content');
     const t = T[currentLang];
-    $('resultCount').textContent=repos.length;
+    
+    // Update Tags Cloud first (using the original un-filtered list of repos)
+    updateTagsCloud(repos);
+    
+    // Apply client-side tag filtering if active
+    let displayList = repos;
+    if (activeTagFilter) {
+        displayList = repos.filter(r => {
+            const matchesLang = r.language && r.language.toLowerCase() === activeTagFilter;
+            const matchesTopic = r.topics && r.topics.map(x => x.toLowerCase()).includes(activeTagFilter);
+            return matchesLang || matchesTopic;
+        });
+    }
+    
+    $('resultCount').textContent = displayList.length;
     
     let sourceText = '';
     if (source === 'trending') {
@@ -1415,17 +1455,71 @@ function renderRepos(repos, source) {
     } else {
         sourceText = currentLang === 'ru' ? '(Поиск API)' : '(Search API)';
     }
+    if (activeTagFilter) {
+        sourceText += ` [Tag: #${activeTagFilter}]`;
+    }
     $('sourceLabel').textContent = sourceText;
 
-    if(!repos.length){
+    if(!displayList.length){
         c.innerHTML=`<div class="error-box"><h3>${t.noRepos}</h3><p>${t.tryFilters}</p></div>`;
         if (analyticsVisible) updateCharts();
         return;
     }
-    c.innerHTML='<div class="grid">'+repos.map((r,i)=>card(r,i)).join('')+'</div>';
+    c.innerHTML='<div class="grid">'+displayList.map((r,i)=>card(r,i, source)).join('')+'</div>';
     
     if (analyticsVisible) {
         updateCharts();
+    }
+}
+
+function updateTagsCloud(repos) {
+    const container = $('tagsCloud');
+    const list = $('tagsCloudList');
+    if (!container || !list) return;
+    
+    // Extract topics & languages
+    const counts = {};
+    repos.forEach(r => {
+        if (r.language) {
+            const l = r.language.toLowerCase();
+            counts[l] = (counts[l] || 0) + 1;
+        }
+        if (r.topics && Array.isArray(r.topics)) {
+            r.topics.forEach(topic => {
+                const t = topic.toLowerCase();
+                counts[t] = (counts[t] || 0) + 1;
+            });
+        }
+    });
+    
+    // Sort and limit to top 15 tags
+    const sortedTags = Object.entries(counts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 15);
+        
+    if (sortedTags.length === 0) {
+        container.style.display = 'none';
+        return;
+    }
+    
+    container.style.display = 'flex';
+    list.innerHTML = sortedTags.map(([tag, count]) => {
+        const isActive = activeTagFilter === tag;
+        const activeStyle = isActive 
+            ? 'background: var(--blue); color: #0d1117; border-color: transparent;' 
+            : 'background: rgba(96, 165, 250, 0.08); color: var(--blue); border: 1px solid rgba(96, 165, 250, 0.15);';
+        return `<span class="tag-chip" style="padding: 4px 10px; border-radius: 12px; font-size: 0.72rem; font-weight: 600; cursor: pointer; transition: all 0.2s; ${activeStyle}" onclick="toggleTagFilter('${esc(tag)}')">${esc(tag)} <span style="opacity: 0.6; font-size: 0.65rem;">(${count})</span></span>`;
+    }).join('');
+}
+
+function toggleTagFilter(tag) {
+    if (activeTagFilter === tag) {
+        activeTagFilter = null;
+    } else {
+        activeTagFilter = tag;
+    }
+    if (lastFetchedRepos) {
+        renderRepos(lastFetchedRepos, lastFetchedSource);
     }
 }
 
@@ -1435,7 +1529,7 @@ function showError(m){
     $('resultCount').textContent='0';
 }
 
-function card(r,i){
+function card(r,i, source){
     const n=r.full_name||'unknown';
     const u=r.html_url||'https://github.com/'+n;
     const d=r.description||T[currentLang].noDesc;
@@ -1449,7 +1543,29 @@ function card(r,i){
     if (sp > 0) {
         const dur = $('durationSelect').value;
         const localizedLabel = T[currentLang].starsLabel[dur] || 'stars';
-        badge = `<span class="badge-hot">🔥 ${sp.toLocaleString()} ${localizedLabel}</span>`;
+        badge = `<span class="badge-hot" style="background: rgba(251, 191, 36, 0.15); color: var(--gold); font-size: 0.7rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; white-space: nowrap; flex-shrink: 0;">🔥 ${sp.toLocaleString()} ${localizedLabel}</span>`;
+    }
+    
+    let freshBadge = '';
+    const updatedAtStr = r.updated_at || r.pushed_at;
+    if (updatedAtStr) {
+        try {
+            const diffMs = new Date() - new Date(updatedAtStr);
+            const diffHours = diffMs / (1000 * 60 * 60);
+            if (diffHours <= 24) {
+                freshBadge = `<span class="badge-fresh" style="background: rgba(16, 185, 129, 0.15); color: #34d399; font-size: 0.65rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(16, 185, 129, 0.3); white-space: nowrap; flex-shrink: 0;">⚡ Active</span>`;
+            }
+        } catch (e) {}
+    } else if (source === 'trending' || sp > 0) {
+        freshBadge = `<span class="badge-fresh" style="background: rgba(16, 185, 129, 0.15); color: #34d399; font-size: 0.65rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(16, 185, 129, 0.3); white-space: nowrap; flex-shrink: 0;">⚡ Active</span>`;
+    }
+
+    let badgesHtml = '';
+    if (badge || freshBadge) {
+        badgesHtml = `<div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px;">
+            ${badge}
+            ${freshBadge}
+        </div>`;
     }
     
     const bb=r.built_by||[];
@@ -1460,7 +1576,10 @@ function card(r,i){
 
     const lang=l?`<span class="meta-item meta-lang"><span class="lang-dot" style="background:${lc}"></span>${esc(l)}</span>`:'';
     return `<div class="card" style="animation-delay:${i*0.05}s">
-        <div class="card-header"><a class="card-name" href="${u}" target="_blank">${esc(n)}</a>${badge}</div>
+        <div class="card-header">
+            <a class="card-name" href="${u}" target="_blank">${esc(n)}</a>
+            ${badgesHtml}
+        </div>
         <p class="card-desc">${esc(d)}</p>
         <div class="card-footer-row">
             ${builtByAvatars}
@@ -1857,6 +1976,10 @@ function sendQuickAiQuery(type) {
         query = currentLang === 'ru'
             ? "Какие главные технологические темы или паттерны объединяют трендовые репозитории на этой странице? Сделай краткий обзор текущих направлений развития."
             : "What are the main technological themes or patterns that unite the trending repositories on this page? Provide a brief summary of the current directions of development.";
+    } else if (type === 'digest') {
+        query = currentLang === 'ru'
+            ? "Сгенерируй технологический дайджест дня по текущим трендовым репозиториям. Расскажи, какие темы сегодня в лидерах, выдели 2-3 ключевых проекта, опиши их архитектуру и практическую пользу для разработчика."
+            : "Generate a daily tech digest based on the current trending repositories. Explain which topics are leading today, highlight 2-3 key projects, and describe their architecture and practical benefits for developers.";
     } else {
         query = currentLang === 'ru'
             ? "Расскажи, какими возможностями ты обладаешь как ИИ-помощник и как ты можешь помочь мне анализировать код и находить полезные проекты?"
