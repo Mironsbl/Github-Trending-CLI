@@ -1769,7 +1769,7 @@ function card(r,i, source){
         <div class="card-meta" style="margin-top: 14px;">
             <span class="meta-item meta-stars">⭐ ${s}</span>
             <span class="meta-item meta-forks">🍴 ${f}</span>
-            ${lang}
+            ${l ? `<span class="meta-item meta-lang"><span class="lang-dot" style="background:${lc}"></span> ${l}</span>` : ''}
         </div>
     </div>`;
 }
