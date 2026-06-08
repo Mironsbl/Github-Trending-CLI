@@ -4,7 +4,15 @@ from __future__ import annotations
 
 import logging
 import os
-from flask import Flask, jsonify, request, render_template
+import sys
+import time
+from flask import Flask, Response, jsonify, request, render_template
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 import github_api
 import scraper
@@ -19,20 +27,138 @@ logging.basicConfig(
 )
 logger = logging.getLogger("github_trending_web")
 
+_APP_START_TIME = time.time()
+_APP_VERSION = "3.0.0"
+
 app = Flask(__name__)
 app.config['TEMPLATES_AUTO_RELOAD'] = True
+app.secret_key = os.environ.get("FLASK_SECRET_KEY") or "super-secret-trending-key-135"
 
 
 @app.route("/")
 def index():
     """Serve the main web UI."""
-    return render_template("index.html")
+    google_client_id = os.environ.get("GOOGLE_CLIENT_ID") or ""
+    return render_template("index.html", google_client_id=google_client_id)
+
+
+@app.route("/api/auth/google", methods=["POST"])
+def api_auth_google():
+    """Verify Google OAuth token and authenticate user."""
+    import requests
+    from flask import session
+    
+    data = request.json or {}
+    token = data.get("token")
+    if not token:
+        return jsonify({"error": "Missing token"}), 400
+        
+    try:
+        # If token is the mock developer token, login developer user
+        if token == "mock_sandbox_token":
+            session["user"] = {
+                "id": "1234567890",
+                "email": "developer@example.com",
+                "name": "Miron Developer",
+                "picture": "https://api.dicebear.com/7.x/bottts/svg?seed=miron"
+            }
+            return jsonify({"status": "success", "user": session["user"]})
+            
+        # Verify with Google API
+        resp = requests.get(f"https://oauth2.googleapis.com/tokeninfo?id_token={token}", timeout=5)
+        if resp.status_code != 200:
+            return jsonify({"error": "Invalid token"}), 401
+            
+        user_info = resp.json()
+        if not user_info.get("email_verified"):
+            return jsonify({"error": "Email not verified by Google"}), 401
+            
+        session["user"] = {
+            "id": user_info.get("sub"),
+            "email": user_info.get("email"),
+            "name": user_info.get("name"),
+            "picture": user_info.get("picture")
+        }
+        return jsonify({"status": "success", "user": session["user"]})
+    except Exception as e:
+        logger.error("Google auth failed: %s", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/auth/status")
+def api_auth_status():
+    """Get the current authenticated user status."""
+    from flask import session
+    user = session.get("user")
+    return jsonify({"authenticated": user is not None, "user": user})
+
+
+@app.route("/api/auth/logout", methods=["POST"])
+def api_auth_logout():
+    """Log the user out."""
+    from flask import session
+    session.pop("user", None)
+    return jsonify({"status": "success"})
+
+
+@app.route("/api/watchlist", methods=["GET", "POST", "DELETE"])
+def api_watchlist():
+    """Manage user watchlist persisted in SQLite."""
+    import db
+    from flask import session
+    
+    user = session.get("user")
+    if not user:
+        return jsonify({"error": "Unauthorized. Please log in first."}), 401
+        
+    user_id = user["id"]
+    
+    if request.method == "GET":
+        watchlist = db.get_user_watchlist(user_id)
+        return jsonify({"watchlist": watchlist})
+        
+    elif request.method == "POST":
+        data = request.json or {}
+        repo = data.get("repo")
+        if not repo:
+            return jsonify({"error": "Missing 'repo' in request body."}), 400
+        db.add_to_watchlist(user_id, repo)
+        return jsonify({"status": "success"})
+        
+    elif request.method == "DELETE":
+        repo_name = request.args.get("repo_name")
+        if not repo_name:
+            return jsonify({"error": "Missing 'repo_name' query parameter."}), 400
+        db.remove_from_watchlist(user_id, repo_name)
+        return jsonify({"status": "success"})
+
+
 
 
 @app.route("/api/health")
 def health():
     """Health check endpoint for production monitoring."""
-    return jsonify({"status": "healthy"})
+    from pathlib import Path
+
+    cache_dir = Path.home() / ".cache" / "github-trending-cli"
+    cache_exists = cache_dir.exists()
+    cache_file_count = len(list(cache_dir.glob("*.json"))) if cache_exists else 0
+
+    uptime_seconds = time.time() - _APP_START_TIME
+    hours, remainder = divmod(int(uptime_seconds), 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    return jsonify({
+        "status": "healthy",
+        "version": _APP_VERSION,
+        "uptime": f"{hours}h {minutes}m {seconds}s",
+        "uptime_seconds": round(uptime_seconds, 2),
+        "python_version": sys.version,
+        "cache": {
+            "directory_exists": cache_exists,
+            "file_count": cache_file_count,
+        },
+    })
 
 
 def _calculate_hotness(r: dict) -> float:
@@ -228,7 +354,7 @@ def expand_query_with_gemini(query: str, api_key: str) -> str:
     }
     
     try:
-        resp = requests.post(url, json=payload, headers=headers, timeout=5)
+        resp = requests.post(url, json=payload, headers=headers, timeout=10)
         if resp.status_code == 200:
             result = resp.json()
             text = result["candidates"][0]["content"]["parts"][0]["text"].strip()
@@ -790,7 +916,7 @@ def api_ai_summarize():
     }
 
     try:
-        resp = requests.post(url, json=payload, headers=headers, timeout=15)
+        resp = requests.post(url, json=payload, headers=headers, timeout=45)
         if resp.status_code == 200:
             result = resp.json()
             try:
@@ -1030,7 +1156,7 @@ def api_ai_compare():
     headers = {"Content-Type": "application/json"}
     
     try:
-        resp = requests.post(url, json={"contents": contents}, headers=headers, timeout=20)
+        resp = requests.post(url, json={"contents": contents}, headers=headers, timeout=45)
         if resp.status_code == 200:
             result = resp.json()
             text = result["candidates"][0]["content"]["parts"][0]["text"]
@@ -1100,7 +1226,7 @@ def api_ai_security():
     headers = {"Content-Type": "application/json"}
     
     try:
-        resp = requests.post(url, json={"contents": contents}, headers=headers, timeout=20)
+        resp = requests.post(url, json={"contents": contents}, headers=headers, timeout=45)
         if resp.status_code == 200:
             result = resp.json()
             text = result["candidates"][0]["content"]["parts"][0]["text"]
@@ -1528,6 +1654,117 @@ def api_repo_similar():
     except Exception as e:
         logger.error("Failed to fetch similar repositories: %s", e)
         return jsonify({"error": str(e), "repos": []}), 500
+
+@app.after_request
+def add_cors_headers(response: Response) -> Response:
+    """Add CORS headers for all /api/* routes."""
+    if request.path.startswith("/api/"):
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Gemini-Key"
+    return response
+
+
+@app.route("/api/export")
+def api_export():
+    """Export cached repos as JSON or CSV downloadable file."""
+    import csv
+    import io
+    import json
+    from pathlib import Path
+
+    fmt = request.args.get("format", "json").lower()
+    if fmt not in ("json", "csv"):
+        return jsonify({"error": "Unsupported format. Use 'json' or 'csv'."}), 400
+
+    # Load the most recent cache file
+    cache_dir = Path.home() / ".cache" / "github-trending-cli"
+    repos: list[dict] = []
+    if cache_dir.exists():
+        files = sorted(cache_dir.glob("*.json"), key=lambda f: f.stat().st_mtime, reverse=True)
+        for file in files:
+            try:
+                data = json.loads(file.read_text(encoding="utf-8"))
+                if isinstance(data, list) and data and isinstance(data[0], dict):
+                    repos = data
+                    break
+            except Exception:
+                continue
+
+    if not repos:
+        return jsonify({"error": "No cached repositories available for export."}), 404
+
+    if fmt == "json":
+        content = json.dumps(repos, indent=2, ensure_ascii=False)
+        return Response(
+            content,
+            mimetype="application/json",
+            headers={"Content-Disposition": "attachment; filename=trending_repos.json"},
+        )
+
+    # CSV format
+    columns = ["full_name", "name", "description", "language", "stargazers_count", "forks_count", "html_url"]
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=columns, extrasaction="ignore")
+    writer.writeheader()
+    for repo in repos:
+        writer.writerow(repo)
+    csv_content = output.getvalue()
+    return Response(
+        csv_content,
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment; filename=trending_repos.csv"},
+    )
+
+
+@app.route("/api/feed.xml")
+def api_feed_xml():
+    """Generate an RSS 2.0 XML feed of the latest trending repos from cache."""
+    import json
+    from datetime import datetime, timezone
+    from pathlib import Path
+    from xml.etree.ElementTree import Element, SubElement, tostring
+
+    # Load the most recent cache file
+    cache_dir = Path.home() / ".cache" / "github-trending-cli"
+    repos: list[dict] = []
+    if cache_dir.exists():
+        files = sorted(cache_dir.glob("*.json"), key=lambda f: f.stat().st_mtime, reverse=True)
+        for file in files:
+            try:
+                data = json.loads(file.read_text(encoding="utf-8"))
+                if isinstance(data, list) and data and isinstance(data[0], dict):
+                    repos = data
+                    break
+            except Exception:
+                continue
+
+    rss = Element("rss", version="2.0")
+    channel = SubElement(rss, "channel")
+    SubElement(channel, "title").text = "GitHub Trending Repositories"
+    SubElement(channel, "link").text = "https://github.com/trending"
+    SubElement(channel, "description").text = "Latest trending repositories on GitHub"
+    SubElement(channel, "lastBuildDate").text = datetime.now(timezone.utc).strftime(
+        "%a, %d %b %Y %H:%M:%S +0000"
+    )
+
+    for repo in repos:
+        item = SubElement(channel, "item")
+        full_name = repo.get("full_name") or repo.get("name") or "unknown"
+        SubElement(item, "title").text = full_name
+        SubElement(item, "link").text = repo.get("html_url") or f"https://github.com/{full_name}"
+        desc_parts = []
+        if repo.get("description"):
+            desc_parts.append(repo["description"])
+        stars = repo.get("stargazers_count") or repo.get("stars") or 0
+        lang = repo.get("language") or "Unknown"
+        desc_parts.append(f"Stars: {stars} | Language: {lang}")
+        SubElement(item, "description").text = " — ".join(desc_parts)
+        SubElement(item, "guid").text = repo.get("html_url") or f"https://github.com/{full_name}"
+
+    xml_bytes = tostring(rss, encoding="unicode", xml_declaration=False)
+    xml_output = '<?xml version="1.0" encoding="UTF-8"?>\n' + xml_bytes
+    return Response(xml_output, mimetype="application/rss+xml")
 
 
 def run_server():

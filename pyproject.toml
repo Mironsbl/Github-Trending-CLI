@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "github-trending-cli"
+version = "3.0.0"
+description = "🔥 A powerful CLI to fetch and display trending GitHub repositories."
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "AIwolfie"},
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Environment :: Console",
+    "Topic :: Software Development :: Libraries",
+]
+dependencies = [
+    "requests>=2.31.0",
+    "rich>=13.0.0",
+    "flask>=3.0.0",
+    "beautifulsoup4>=4.12.0",
+    "lxml>=5.0.0",
+    "waitress>=3.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/AIwolfie/Github-Trending-CLI"
+Repository = "https://github.com/AIwolfie/Github-Trending-CLI"
+
+[project.scripts]
+github-trending = "main:main"
+gt = "main:main"
+
+[tool.setuptools]
+py-modules = ["main", "github_api", "utils", "scraper", "web", "social", "twitter", "db"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"

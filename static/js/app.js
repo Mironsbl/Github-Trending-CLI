@@ -116,7 +116,57 @@ const T = {
             limit: "Limit",
             minStars: "Min Stars",
             advanced: "Advanced Filters"
-        }
+        },
+        premiumBtn: "Premium Plan",
+        premiumActiveBtn: "Pro Active",
+        premiumModalTitle: "Go Premium",
+        premiumModalDesc: "Unlock advanced capabilities and professional developer tools.",
+        planFreeTitle: "Free Starter",
+        planFreeDesc: "Basic repository browsing and searching",
+        planFreePeriod: "Forever",
+        planProTitle: "👑 Pro Developer",
+        planProPeriod: "per month",
+        planProBadge: "Popular",
+        btnSimulatePro: "Activate Pro (Simulated Checkout)",
+        btnDeactivatePro: "Deactivate Pro Plan",
+        premiumDisclaimer: "Secure checkout powered by Stripe. Cancellation available at any time with one click.",
+        premiumFeature1: "⚡ Unlimited AI repository chat",
+        premiumFeature2: "🛡️ Full AI Security Audit for dependencies",
+        premiumFeature3: "📊 Multi-repository side-by-side comparison",
+        premiumFeature4: "📧 Automatic email newsletter/digests",
+        premiumFeature5: "📥 High-speed CSV/JSON data export",
+        premiumRequiredToast: "👑 This feature requires a Pro Developer plan. Please upgrade!",
+        premiumActivatedToast: "👑 Pro Developer subscription activated! Thank you for your support!",
+        premiumDeactivatedToast: "Pro plan deactivated. Reverted to Free Starter.",
+        landingHeroBadge: "SaaS Hype & Security Dashboard v3.0",
+        landingHeroTitle: "Discover the Future of Code<br>Before It Trends",
+        landingHeroDesc: "Track and analyze hot open-source GitHub repositories using real-time community velocity, developer discussions, and Gemini AI. Save time, secure your dependencies, and find inspiration.",
+        btnHeroDemo: "🚀 Try Interactive Sandbox",
+        btnHeroLogin: "🔑 Google Sign-In",
+        painsTag: "Value Proposition",
+        painsTitle: "Why Developer Intelligence Matters",
+        badgePain: "Pain",
+        badgeSolution: "Solution",
+        metricLabel1: "Repos Audited",
+        metricLabel2: "Uptime SLA",
+        metricLabel3: "Search Speed",
+        metricLabel4: "AI Engine",
+        sandboxTitle: "🧪 Interactive Test Run Sandbox",
+        sandboxSubtitle: "Test-drive the dashboard functionality right now without registering!",
+        btnSandboxRun: "Run Demo Test ⚡",
+        sandboxPlaceholder: "Select a language and click \"Run Demo Test\" to fetch trending repositories in the sandbox.",
+        card1Title: "GitHub Noise & Info Overload",
+        card1Pain: "Sifting through thousands of new projects is overwhelming; standard trendlists lack analytical depth.",
+        card1Solution: "Sort by our custom \"Hype Index\" (real-time velocity) and filter obscure gems away from Big Tech noise.",
+        card2Title: "Blind Dependency Risks",
+        card2Pain: "Developers blindly import trending projects without scanning manifest files for supply-chain risks.",
+        card2Solution: "Perform instant automated AI Dependency Security Audits to check security health and broad permissions.",
+        card3Title: "Fragmented Community Feed",
+        card3Pain: "Having to search HackerNews, X/Twitter, and Reddit separately to find actual developers reviews.",
+        card3Solution: "Aggregate discussions, sentiment scores, and Twitter mentions inside a single unified timeline.",
+        card4Title: "Bloated Readme Documents",
+        card4Pain: "Reading massive markdown files just to get a quick summary and installation command.",
+        card4Solution: "Let Gemini AI summarize the project, extract execution commands, and write a dev-prompt for Cursor in 1 click."
     },
     ru: {
         title: "🔥 Тренды GitHub",
@@ -226,7 +276,57 @@ const T = {
             limit: "Лимит",
             minStars: "Мин. звёзд",
             advanced: "Доп. фильтры"
-        }
+        },
+        premiumBtn: "Премиум",
+        premiumActiveBtn: "👑 Pro Активен",
+        premiumModalTitle: "Перейти на Премиум",
+        premiumModalDesc: "Разблокируйте передовые функции и профессиональные инструменты для разработчиков.",
+        planFreeTitle: "Базовый уровень",
+        planFreeDesc: "Базовый просмотр и поиск репозиториев",
+        planFreePeriod: "Навсегда",
+        planProTitle: "👑 Pro Разработчик",
+        planProPeriod: "в месяц",
+        planProBadge: "Популярно",
+        btnSimulatePro: "Активировать Pro (Тестовый платеж)",
+        btnDeactivatePro: "Деактивировать Pro тариф",
+        premiumDisclaimer: "Безопасная оплата через Stripe. Отмена подписки доступна в любой момент в один клик.",
+        premiumFeature1: "⚡ Безлимитный ИИ-чат по репозиториям",
+        premiumFeature2: "🛡️ Полный ИИ-аудит безопасности зависимостей",
+        premiumFeature3: "📊 Сравнение нескольких репозиториев бок о бок",
+        premiumFeature4: "📧 Автоматическая рассылка дайджестов",
+        premiumFeature5: "📥 Высокоскоростной экспорт CSV/JSON",
+        premiumRequiredToast: "👑 Эта функция требует тарифа Pro Разработчик. Пожалуйста, обновитесь!",
+        premiumActivatedToast: "👑 Подписка Pro Разработчик успешно активирована! Спасибо за поддержку!",
+        premiumDeactivatedToast: "Тариф Pro отключен. Возврат к бесплатному тарифу.",
+        landingHeroBadge: "Дашборд хайпа и безопасности опенсорса v3.0",
+        landingHeroTitle: "Открывайте технологии будущего<br>до того, как они станут трендом",
+        landingHeroDesc: "Отслеживайте и анализируйте популярные репозитории на GitHub с помощью ИИ Gemini, активности сообщества и обсуждений в реальном времени. Сэкономьте время, защитите свой стек и находите вдохновение.",
+        btnHeroDemo: "🚀 Попробовать интерактивную демо-версию",
+        btnHeroLogin: "🔑 Войти через Google",
+        painsTag: "Ценностное предложение",
+        painsTitle: "Почему важна аналитика репозиториев",
+        badgePain: "Боль",
+        badgeSolution: "Решение",
+        metricLabel1: "Репозиториев проверено",
+        metricLabel2: "Доступность SLA",
+        metricLabel3: "Скорость поиска",
+        metricLabel4: "ИИ Ядро",
+        sandboxTitle: "🧪 Интерактивная песочница для тестов",
+        sandboxSubtitle: "Протестируйте возможности дашборда прямо сейчас без регистрации!",
+        btnSandboxRun: "Запустить тест ⚡",
+        sandboxPlaceholder: "Выберите язык и нажмите \"Запустить тест\", чтобы загрузить трендовые репозитории в песочницу.",
+        card1Title: "Информационный шум и перегрузка",
+        card1Pain: "Ручной поиск среди тысяч проектов утомляет, а стандартные списки трендов GitHub поверхностны.",
+        card1Solution: "Сортировка по кастомному «Индексу хайпа» (динамике роста) и поиск скрытых жемчужин без IT-гигантов.",
+        card2Title: "Слепой импорт зависимостей",
+        card2Pain: "Разработчики копируют библиотеки, не проверяя их манифесты на скрытые угрозы безопасности.",
+        card2Solution: "Мгновенный автоматический ИИ-аудит безопасности зависимостей на предмет прав и уязвимостей.",
+        card3Title: "Разрозненность мнений",
+        card3Pain: "Нужно отдельно искать отзывы о библиотеках на HackerNews, X/Twitter и Reddit.",
+        card3Solution: "Агрегатор обсуждений, тональности постов и упоминаний в X/Twitter в единой ленте проекта.",
+        card4Title: "Перегруженная документация",
+        card4Pain: "Чтение гигантских файлов README ради одной команды запуска и краткой сути проекта.",
+        card4Solution: "ИИ Gemini упакует суть в 3 пункта, найдет команду установки и соберет готовый промпт для Cursor."
     }
 };
 
@@ -235,6 +335,7 @@ let currentLang = localStorage.getItem("lang") || "en";
 let autoTimer = null;
 let lastFetchedRepos = null;
 let lastFetchedSource = "api";
+let currentUser = null;
 let analyticsVisible = false;
 let historyVisible = false;
 let langChartInstance = null;
@@ -294,8 +395,17 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // Initialize state
     applyLanguage();
-    fetchRepos();
+    checkAuthStatus();
     fetchTwitterTrends();
+    
+    // Outside click listener for landing modals
+    window.addEventListener('click', e => {
+        const premiumModal = $('premiumModal');
+        if (e.target === premiumModal) closePremiumModal();
+        
+        const sandboxSummaryModal = $('sandboxSummaryModal');
+        if (e.target === sandboxSummaryModal) sandboxSummaryModal.classList.remove('open');
+    });
 });
 
 // Translation Management
@@ -500,6 +610,89 @@ function applyLanguage() {
         }
     }
     updateTwitterButtonLabel();
+
+    // Premium UI states translation
+    const isPremium = localStorage.getItem("premium_status") === "active";
+    const premiumBtn = $('btnPremium');
+    if (premiumBtn) {
+        premiumBtn.innerHTML = isPremium ? `👑 <span class="btn-text">${t.premiumActiveBtn || 'Pro Active'}</span>` : `👑 <span class="btn-text">${t.premiumBtn || 'Premium'}</span>`;
+        if (isPremium) {
+            premiumBtn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+            premiumBtn.style.boxShadow = '0 0 8px rgba(16, 185, 129, 0.25)';
+        } else {
+            premiumBtn.style.background = 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)';
+            premiumBtn.style.boxShadow = '0 0 8px rgba(251, 191, 36, 0.25)';
+        }
+    }
+    if ($('premiumModalTitle')) $('premiumModalTitle').textContent = t.premiumModalTitle;
+    if ($('premiumModalDesc')) $('premiumModalDesc').textContent = t.premiumModalDesc;
+    if ($('planFreeTitle')) $('planFreeTitle').textContent = t.planFreeTitle;
+    if ($('planFreeDesc')) $('planFreeDesc').textContent = t.planFreeDesc;
+    if ($('planFreePeriod')) $('planFreePeriod').textContent = t.planFreePeriod;
+    if ($('planProTitle')) $('planProTitle').textContent = t.planProTitle;
+    if ($('planProPeriod')) $('planProPeriod').textContent = t.planProPeriod;
+    if ($('planProBadge')) $('planProBadge').textContent = t.planProBadge;
+    if ($('premiumDisclaimer')) $('premiumDisclaimer').textContent = t.premiumDisclaimer;
+    
+    if ($('feature1')) $('feature1').textContent = t.premiumFeature1;
+    if ($('feature2')) $('feature2').textContent = t.premiumFeature2;
+    if ($('feature3')) $('feature3').textContent = t.premiumFeature3;
+    if ($('feature4')) $('feature4').textContent = t.premiumFeature4;
+    if ($('feature5')) $('feature5').textContent = t.premiumFeature5;
+    
+    const btnSimulatePro = $('btnSimulatePro');
+    if (btnSimulatePro) {
+        btnSimulatePro.textContent = isPremium ? (t.btnDeactivatePro || 'Deactivate Pro Plan') : (t.btnSimulatePro || 'Activate Pro (Simulated Checkout)');
+        if (isPremium) {
+            btnSimulatePro.style.background = 'rgba(239, 68, 68, 0.1)';
+            btnSimulatePro.style.color = 'var(--red)';
+            btnSimulatePro.style.border = '1px solid rgba(239, 68, 68, 0.2)';
+        } else {
+            btnSimulatePro.style.background = 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)';
+            btnSimulatePro.style.color = '#000';
+            btnSimulatePro.style.border = 'none';
+        }
+    }
+
+    // Landing page labels translation
+    if ($('heroBadgeText')) $('heroBadgeText').textContent = t.landingHeroBadge;
+    if ($('heroTitleText')) $('heroTitleText').innerHTML = t.landingHeroTitle;
+    if ($('heroDescText')) $('heroDescText').textContent = t.landingHeroDesc;
+    if ($('btnHeroDemo')) $('btnHeroDemo').textContent = t.btnHeroDemo;
+    if ($('btnHeroLogin')) $('btnHeroLogin').textContent = t.btnHeroLogin;
+    if ($('painsTag')) $('painsTag').textContent = t.painsTag;
+    if ($('painsTitle')) $('painsTitle').textContent = t.painsTitle;
+    
+    // Metrics labels
+    if ($('metricLabel1')) $('metricLabel1').textContent = t.metricLabel1 || 'Repos Audited';
+    if ($('metricLabel2')) $('metricLabel2').textContent = t.metricLabel2 || 'Uptime SLA';
+    if ($('metricLabel3')) $('metricLabel3').textContent = t.metricLabel3 || 'Search Speed';
+    if ($('metricLabel4')) $('metricLabel4').textContent = t.metricLabel4 || 'AI Engine';
+
+    // Pain/Solution Badges
+    document.querySelectorAll('.badge-text-pain').forEach(el => el.textContent = t.badgePain || 'Pain');
+    document.querySelectorAll('.badge-text-solution').forEach(el => el.textContent = t.badgeSolution || 'Solution');
+    
+    if ($('card1Title')) $('card1Title').textContent = t.card1Title;
+    if ($('card1Pain')) $('card1Pain').textContent = t.card1Pain;
+    if ($('card1Solution')) $('card1Solution').textContent = t.card1Solution;
+    
+    if ($('card2Title')) $('card2Title').textContent = t.card2Title;
+    if ($('card2Pain')) $('card2Pain').textContent = t.card2Pain;
+    if ($('card2Solution')) $('card2Solution').textContent = t.card2Solution;
+    
+    if ($('card3Title')) $('card3Title').textContent = t.card3Title;
+    if ($('card3Pain')) $('card3Pain').textContent = t.card3Pain;
+    if ($('card3Solution')) $('card3Solution').textContent = t.card3Solution;
+    
+    if ($('card4Title')) $('card4Title').textContent = t.card4Title;
+    if ($('card4Pain')) $('card4Pain').textContent = t.card4Pain;
+    if ($('card4Solution')) $('card4Solution').textContent = t.card4Solution;
+    
+    if ($('sandboxTitle')) $('sandboxTitle').textContent = t.sandboxTitle;
+    if ($('sandboxSubtitle')) $('sandboxSubtitle').textContent = t.sandboxSubtitle;
+    if ($('btnSandboxRun')) $('btnSandboxRun').textContent = t.btnSandboxRun;
+    if ($('sandboxPlaceholder')) $('sandboxPlaceholder').textContent = t.sandboxPlaceholder;
 
     // Re-render
     if (lastFetchedRepos) {
@@ -736,7 +929,14 @@ function updateCharts() {
 async function fetchRepos() {
     const c = $('content');
     const t = T[currentLang];
-    c.innerHTML = `<div class="loading"><div class="spinner"></div><p style="color:var(--text-dim)">${t.loading}</p></div>`;
+    const skeletonCard = `<div class="skeleton-card">
+        <div class="skeleton-bar title"></div>
+        <div class="skeleton-bar desc"></div>
+        <div class="skeleton-bar desc"></div>
+        <div class="skeleton-bar desc-short"></div>
+        <div class="skeleton-bar footer"></div>
+    </div>`;
+    c.innerHTML = `<div class="grid">${skeletonCard.repeat(6)}</div>`;
     
     const limitVal = $('limitSelect') ? $('limitSelect').value : '25';
     const p = new URLSearchParams({
@@ -1072,7 +1272,7 @@ function card(r, i, source) {
         </div>
     `;
 
-    return `<div class="card" style="animation-delay:${i * 0.03}s;">
+    return `<div class="card" style="animation-delay:${i * 0.05}s;">
         ${compareCheckbox}
         <div class="card-header" style="padding-right: 70px;">
             <a class="card-name" href="${u}" target="_blank">${esc(n)}</a>
@@ -1274,7 +1474,7 @@ function saveApiKey() {
     }
     
     closeApiKeyModal();
-    alert(T[currentLang].apiKeySavedAlert);
+    showToast(T[currentLang].apiKeySavedAlert, 'success');
     if (key && aiHistory.length === 0) {
         resetAiChat();
     }
@@ -1562,7 +1762,7 @@ function onCompareCheckChange(chk, index) {
     
     if (chk.checked) {
         if (selectedCompareRepos.length >= 3) {
-            alert(currentLang === 'ru' ? 'Максимум 3 репозитория для сравнения!' : 'Maximum of 3 repositories can be compared!');
+            showToast(currentLang === 'ru' ? 'Максимум 3 репозитория для сравнения!' : 'Maximum of 3 repositories can be compared!', 'error');
             chk.checked = false;
             return;
         }
@@ -1598,8 +1798,33 @@ function clearRepoCompare() {
 }
 
 async function runAiComparison() {
+    if (localStorage.getItem("premium_status") !== "active") {
+        const modal = $('compareModal');
+        const container = $('compareModalContent');
+        if (!modal || !container) return;
+        
+        modal.classList.add('open');
+        container.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px 20px; border: 1px dashed rgba(251, 191, 36, 0.2); border-radius: 12px; background: rgba(251, 191, 36, 0.02); margin: 20px 0;">
+                <div style="font-size: 2.2rem; margin-bottom: 12px;">👑</div>
+                <h3 style="font-size: 1.1rem; font-weight: 700; color: #fbbf24; margin-bottom: 6px;">
+                    ${currentLang === 'ru' ? 'Требуется Premium доступ' : 'Premium Feature Required'}
+                </h3>
+                <p style="color: var(--text-dim); font-size: 0.8rem; max-width: 320px; margin-bottom: 16px; line-height: 1.4;">
+                    ${currentLang === 'ru' 
+                      ? 'Сравнение нескольких репозиториев бок о бок с помощью ИИ доступно только для пользователей тарифа Pro Разработчик.' 
+                      : 'AI side-by-side repository comparison is only available to Pro Developer plan subscribers.'}
+                </p>
+                <button class="btn btn-sm btn-accent" onclick="closeCompareModal(); openPremiumModal()" style="background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%); color: #000; border: none; font-weight: 700;">
+                    ${currentLang === 'ru' ? 'Разблокировать Pro' : 'Unlock Pro Access'}
+                </button>
+            </div>
+        `;
+        return;
+    }
+    
     if (selectedCompareRepos.length < 2) {
-        alert(currentLang === 'ru' ? 'Выберите как минимум 2 репозитория для сравнения!' : 'Please select at least 2 repositories to compare!');
+        showToast(currentLang === 'ru' ? 'Выберите как минимум 2 репозитория для сравнения!' : 'Please select at least 2 repositories to compare!', 'error');
         return;
     }
     
@@ -1804,6 +2029,26 @@ async function loadSocialDiscussions() {
 async function runSecurityAudit() {
     const container = $('modalSecurityContainer');
     if (!container) return;
+    
+    if (localStorage.getItem("premium_status") !== "active") {
+        container.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px 20px; border: 1px dashed rgba(251, 191, 36, 0.2); border-radius: 12px; background: rgba(251, 191, 36, 0.02); margin: 20px 0;">
+                <div style="font-size: 2.2rem; margin-bottom: 12px;">👑</div>
+                <h3 style="font-size: 1.1rem; font-weight: 700; color: #fbbf24; margin-bottom: 6px;">
+                    ${currentLang === 'ru' ? 'Требуется Premium доступ' : 'Premium Feature Required'}
+                </h3>
+                <p style="color: var(--text-dim); font-size: 0.8rem; max-width: 320px; margin-bottom: 16px; line-height: 1.4;">
+                    ${currentLang === 'ru' 
+                      ? 'ИИ-аудит безопасности зависимостей доступен только для пользователей тарифа Pro Разработчик.' 
+                      : 'AI Security dependency audit is only available to Pro Developer plan subscribers.'}
+                </p>
+                <button class="btn btn-sm btn-accent" onclick="openPremiumModal()" style="background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%); color: #000; border: none; font-weight: 700;">
+                    ${currentLang === 'ru' ? 'Разблокировать Pro' : 'Unlock Pro Access'}
+                </button>
+            </div>
+        `;
+        return;
+    }
     
     container.innerHTML = '<div class="loading"><div class="spinner"></div><p style="color: var(--text-muted); font-size:0.8rem; margin-top:8px;">Analyzing manifest file with Gemini AI...</p></div>';
     
@@ -2111,7 +2356,7 @@ function isInWatchlist(repoName) {
     return getWatchlist().some(w => w.full_name === repoName);
 }
 
-function toggleWatchRepo(event, index) {
+async function toggleWatchRepo(event, index) {
     if (event) event.stopPropagation();
     if (!lastFetchedRepos || !lastFetchedRepos[index]) return;
     
@@ -2119,16 +2364,37 @@ function toggleWatchRepo(event, index) {
     const repoName = repo.full_name || repo.name;
     let wl = getWatchlist();
     
-    if (isInWatchlist(repoName)) {
+    const isAdding = !isInWatchlist(repoName);
+    
+    if (!isAdding) {
         wl = wl.filter(w => w.full_name !== repoName);
+        if (currentUser) {
+            try {
+                await fetch(`/api/watchlist?repo_name=${encodeURIComponent(repoName)}`, { method: 'DELETE' });
+            } catch (e) {
+                console.error("Failed to remove watchlist item from backend:", e);
+            }
+        }
     } else {
-        wl.push({
+        const item = {
             full_name: repoName,
             html_url: repo.html_url || `https://github.com/${repoName}`,
             stars_at_save: repo.stargazers_count || repo.stars || 0,
             language: repo.language || '',
             saved_at: new Date().toISOString()
-        });
+        };
+        wl.push(item);
+        if (currentUser) {
+            try {
+                await fetch('/api/watchlist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ repo: item })
+                });
+            } catch (e) {
+                console.error("Failed to add watchlist item to backend:", e);
+            }
+        }
     }
     
     saveWatchlist(wl);
@@ -2237,8 +2503,20 @@ function removeFromWatchlist(repoName) {
     }
 }
 
-function clearWatchlist() {
+async function clearWatchlist() {
     if (!confirm(currentLang === 'ru' ? 'Очистить весь список наблюдения?' : 'Clear the entire watchlist?')) return;
+    
+    if (currentUser) {
+        try {
+            const list = getWatchlist();
+            for (const item of list) {
+                await fetch(`/api/watchlist?repo_name=${encodeURIComponent(item.full_name)}`, { method: 'DELETE' });
+            }
+        } catch (e) {
+            console.error("Failed to clear watchlist on backend:", e);
+        }
+    }
+    
     saveWatchlist([]);
     renderWatchlistPanel();
     
@@ -2317,6 +2595,13 @@ async function generateDigest() {
     const container = $('digestContent');
     if (!container) return;
     
+    if (localStorage.getItem("premium_status") !== "active") {
+        closeDigestModal();
+        openPremiumModal();
+        showToast(currentLang === 'ru' ? 'ИИ-дайджест доступен только в тарифе Pro!' : 'AI digest generation requires Pro Developer subscription!', 'error');
+        return;
+    }
+    
     if (!lastFetchedRepos || lastFetchedRepos.length === 0) {
         container.innerHTML = `<p style="color:var(--red); text-align:center;">${currentLang === 'ru' ? 'Сначала загрузите репозитории.' : 'Load some repositories first.'}</p>`;
         return;
@@ -2383,7 +2668,7 @@ async function generateDigest() {
 
 function copyDigest() {
     if (!lastDigestMarkdown) {
-        alert(currentLang === 'ru' ? 'Сначала сгенерируйте дайджест.' : 'Generate a digest first.');
+        showToast(currentLang === 'ru' ? 'Сначала сгенерируйте дайджест.' : 'Generate a digest first.', 'info');
         return;
     }
     navigator.clipboard.writeText(lastDigestMarkdown).then(() => {
@@ -2396,7 +2681,7 @@ function copyDigest() {
 
 function downloadDigest() {
     if (!lastDigestMarkdown) {
-        alert(currentLang === 'ru' ? 'Сначала сгенерируйте дайджест.' : 'Generate a digest first.');
+        showToast(currentLang === 'ru' ? 'Сначала сгенерируйте дайджест.' : 'Generate a digest first.', 'info');
         return;
     }
     const blob = new Blob([lastDigestMarkdown], { type: 'text/markdown' });
@@ -2475,7 +2760,7 @@ card = function(r, i, source) {
     const isSaved = isInWatchlist(n);
     const watchlistBtn = `<button id="watchBtn_${i}" class="watchlist-btn ${isSaved ? 'saved' : ''}" onclick="toggleWatchRepo(event, ${i})" title="${isSaved ? 'Remove from Watchlist' : 'Add to Watchlist'}">${isSaved ? '🔔' : '🔕'}</button>`;
 
-    return `<div class="card" style="animation-delay:${i * 0.03}s;">
+    return `<div class="card" style="animation-delay:${i * 0.05}s;">
         ${watchlistBtn}
         ${compareCheckbox}
         <div class="card-header" style="padding-right: 70px;">
@@ -2658,4 +2943,430 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+// ============================================================
+// TOAST NOTIFICATION SYSTEM
+// ============================================================
+function showToast(message, type = 'info') {
+    const container = $('toastContainer');
+    if (!container) return;
+    
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    
+    const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+    toast.innerHTML = `<span>${icons[type] || icons.info}</span><span>${esc(message)}</span>`;
+    
+    container.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.classList.add('toast-hide');
+        toast.addEventListener('animationend', () => toast.remove());
+    }, 3000);
+}
+
+// ============================================================
+// KEYBOARD SHORTCUTS
+// ============================================================
+window.addEventListener('keydown', (e) => {
+    const tag = document.activeElement?.tagName?.toLowerCase();
+    const isInputFocused = tag === 'input' || tag === 'textarea' || tag === 'select';
+    
+    // Ctrl+K / Cmd+K: Focus search input
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        const searchInput = $('searchInput');
+        if (searchInput) searchInput.focus();
+        return;
+    }
+    
+    // Escape: Close any open modal
+    if (e.key === 'Escape') {
+        const modals = document.querySelectorAll('.modal.open');
+        modals.forEach(m => {
+            if (m.id === 'tweetsModal') closeModal();
+            else if (m.id === 'apiKeyModal') closeApiKeyModal();
+            else if (m.id === 'compareModal') closeCompareModal();
+            else if (m.id === 'digestModal') closeDigestModal();
+            else if (m.id === 'premiumModal') closePremiumModal();
+        });
+        return;
+    }
+    
+    // Shortcuts that only work when NOT focused on an input
+    if (!isInputFocused) {
+        // R: Refresh repos
+        if (e.key === 'r' || e.key === 'R') {
+            e.preventDefault();
+            fetchRepos();
+            showToast(currentLang === 'ru' ? 'Обновление...' : 'Refreshing...', 'info');
+            return;
+        }
+        
+        // /: Focus search input
+        if (e.key === '/') {
+            e.preventDefault();
+            const searchInput = $('searchInput');
+            if (searchInput) searchInput.focus();
+            return;
+        }
+    }
+});
+
+// ============================================================
+// BACK TO TOP BUTTON
+// ============================================================
+window.addEventListener('DOMContentLoaded', () => {
+    const backToTopBtn = $('backToTopBtn');
+    const workspaceContent = document.querySelector('.workspace-content');
+    
+    if (backToTopBtn && workspaceContent) {
+        workspaceContent.addEventListener('scroll', () => {
+            if (workspaceContent.scrollTop > 300) {
+                backToTopBtn.classList.add('visible');
+            } else {
+                backToTopBtn.classList.remove('visible');
+            }
+        });
+        
+        backToTopBtn.addEventListener('click', () => {
+            workspaceContent.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    }
+});
+
+// ============================================================
+// PREMIUM PLANS MANAGEMENT
+// ============================================================
+function openPremiumModal() {
+    $('premiumModal').classList.add('open');
+}
+
+function closePremiumModal() {
+    $('premiumModal').classList.remove('open');
+}
+
+function simulatePremiumCheckout() {
+    const isPremium = localStorage.getItem("premium_status") === "active";
+    const t = T[currentLang];
+    
+    if (isPremium) {
+        localStorage.removeItem("premium_status");
+        showToast(t.premiumDeactivatedToast || "Pro plan deactivated.", "info");
+    } else {
+        localStorage.setItem("premium_status", "active");
+        showToast(t.premiumActivatedToast || "Pro plan activated!", "success");
+    }
+    
+    closePremiumModal();
+    applyLanguage();
+}
+
+// ============================================================
+// GOOGLE OAUTH AUTHENTICATION LIFE CYCLE
+// ============================================================
+async function checkAuthStatus() {
+    try {
+        const r = await fetch('/api/auth/status');
+        const d = await r.json();
+        if (d.authenticated && d.user) {
+            handleUserAuthenticated(d.user);
+        } else {
+            handleUserUnauthenticated();
+        }
+    } catch (e) {
+        console.error("Auth check failed:", e);
+        handleUserUnauthenticated();
+    }
+}
+
+function handleUserAuthenticated(user) {
+    currentUser = user;
+    document.body.classList.remove('landing-active');
+    $('googleLoginBtnContainer').style.display = 'none';
+    if ($('heroGoogleBtnContainer')) $('heroGoogleBtnContainer').style.display = 'none';
+    
+    const profile = $('userProfile');
+    if (profile) {
+        profile.style.display = 'flex';
+        $('userAvatar').src = user.picture || "https://api.dicebear.com/7.x/bottts/svg?seed=miron";
+    }
+    
+    const launchBtn = $('btnLaunchApp');
+    if (launchBtn) launchBtn.style.display = 'none';
+    
+    // Transition views
+    $('landingView').style.display = 'none';
+    $('dashboardView').style.display = 'flex';
+    
+    fetchRepos();
+    syncWatchlist();
+}
+
+function handleUserUnauthenticated() {
+    currentUser = null;
+    document.body.classList.add('landing-active');
+    $('googleLoginBtnContainer').style.display = 'inline-block';
+    if ($('heroGoogleBtnContainer')) $('heroGoogleBtnContainer').style.display = 'inline-block';
+    if ($('userProfile')) $('userProfile').style.display = 'none';
+    
+    const launchBtn = $('btnLaunchApp');
+    if (launchBtn) launchBtn.style.display = 'none';
+    
+    $('landingView').style.display = 'block';
+    $('dashboardView').style.display = 'none';
+}
+
+async function logoutGoogle() {
+    try {
+        const r = await fetch('/api/auth/logout', { method: 'POST' });
+        showToast(currentLang === 'ru' ? 'Вы успешно вышли' : 'Signed out successfully', 'info');
+        handleUserUnauthenticated();
+    } catch (e) {
+        showToast(String(e), 'error');
+    }
+}
+
+async function handleCredentialResponse(response) {
+    try {
+        const r = await fetch('/api/auth/google', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: response.credential })
+        });
+        const d = await r.json();
+        if (d.status === 'success' && d.user) {
+            showToast(currentLang === 'ru' ? `Добро пожаловать, ${d.user.name}!` : `Welcome back, ${d.user.name}!`, 'success');
+            handleUserAuthenticated(d.user);
+        } else {
+            showToast(d.error || 'Authentication failed', 'error');
+        }
+    } catch (e) {
+        showToast(String(e), 'error');
+    }
+}
+
+async function simulateGoogleLogin() {
+    try {
+        const r = await fetch('/api/auth/google', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: "mock_sandbox_token" })
+        });
+        const d = await r.json();
+        if (d.status === 'success' && d.user) {
+            showToast(currentLang === 'ru' ? 'Вход выполнен (Тестовый аккаунт)!' : 'Logged in successfully (Dev Mock)!', 'success');
+            handleUserAuthenticated(d.user);
+        }
+    } catch (e) {
+        showToast(String(e), 'error');
+    }
+}
+
+function enterDashboard() {
+    document.body.classList.remove('landing-active');
+    $('landingView').style.display = 'none';
+    $('dashboardView').style.display = 'flex';
+    fetchRepos();
+}
+
+async function syncWatchlist() {
+    if (!currentUser) return;
+    try {
+        const r = await fetch('/api/watchlist');
+        const d = await r.json();
+        const dbList = d.watchlist || [];
+        
+        let localList = getWatchlist();
+        let changed = false;
+        
+        // Merge local items into db list
+        for (const localItem of localList) {
+            const exists = dbList.some(dbItem => dbItem.full_name === localItem.full_name);
+            if (!exists) {
+                // Post to DB
+                await fetch('/api/watchlist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ repo: localItem })
+                });
+                dbList.push(localItem);
+                changed = true;
+            }
+        }
+        
+        saveWatchlist(dbList);
+        if (changed) {
+            showToast(currentLang === 'ru' ? 'Список наблюдения синхронизирован!' : 'Watchlist synchronized with cloud!', 'success');
+        }
+    } catch (e) {
+        console.error("Watchlist sync failed:", e);
+    }
+}
+
+// ============================================================
+// SANDBOX INTERACTIVE DEMO RUN
+// ============================================================
+let sandboxFetchedRepos = [];
+
+function startSandboxDemo() {
+    const el = $('sandboxSection');
+    if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+async function runSandboxDemoTest() {
+    const lang = $('sandboxLang').value;
+    const container = $('sandboxResults');
+    if (!container) return;
+    
+    // Render skeleton loader
+    container.innerHTML = `
+        <div class="skeleton-card">
+            <div class="skeleton-bar title"></div>
+            <div class="skeleton-bar desc"></div>
+            <div class="skeleton-bar desc-short"></div>
+            <div class="skeleton-bar footer"></div>
+        </div>
+        <div class="skeleton-card">
+            <div class="skeleton-bar title"></div>
+            <div class="skeleton-bar desc"></div>
+            <div class="skeleton-bar desc-short"></div>
+            <div class="skeleton-bar footer"></div>
+        </div>
+        <div class="skeleton-card">
+            <div class="skeleton-bar title"></div>
+            <div class="skeleton-bar desc"></div>
+            <div class="skeleton-bar desc-short"></div>
+            <div class="skeleton-bar footer"></div>
+        </div>
+    `;
+    
+    try {
+        const queryLang = lang === 'all' ? '' : lang;
+        const r = await fetch(`/api/trending?limit=3&language=${queryLang}&duration=week`);
+        const d = await r.json();
+        
+        if (d.error) {
+            container.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--red);">${d.error}</div>`;
+            return;
+        }
+        
+        renderSandboxRepos(d.repos || []);
+    } catch (e) {
+        container.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--red);">${e}</div>`;
+    }
+}
+
+function renderSandboxRepos(repos) {
+    const container = $('sandboxResults');
+    if (!container) return;
+    
+    sandboxFetchedRepos = repos;
+    
+    if (repos.length === 0) {
+        container.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--text-muted); font-size:0.85rem;">No repositories found. Try another language.</div>`;
+        return;
+    }
+    
+    container.innerHTML = repos.map((r, i) => {
+        const n = r.full_name || r.name || 'unknown';
+        const u = r.html_url || 'https://github.com/' + n;
+        const d = r.description || (currentLang === 'ru' ? 'Нет описания' : 'No description');
+        const s = (r.stargazers_count || r.stars || 0).toLocaleString();
+        const f = (r.forks_count || r.forks || 0).toLocaleString();
+        const l = r.language || '';
+        const lc = LANG_COLORS[l] || '#71717a';
+        
+        return `
+            <div class="card" style="animation-delay:${i * 0.05}s;">
+                <div class="card-header">
+                    <a class="card-name" href="${u}" target="_blank">${esc(n)}</a>
+                </div>
+                <p class="card-desc">${esc(d)}</p>
+                <div class="card-footer-row" style="margin-top:auto;">
+                    <button class="btn btn-sm btn-accent" onclick="runSandboxAiSummary(event, ${i})" style="font-size:0.75rem; padding:4px 8px; height:28px;">🤖 AI Summary</button>
+                </div>
+                <div class="card-meta" style="margin-top: 14px;">
+                    <span class="meta-item meta-stars">
+                        <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z"/></svg>
+                        <span>${s}</span>
+                    </span>
+                    <span class="meta-item meta-forks">
+                        <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path d="M5 11.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5z"/><path d="M2 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H2zM2 0h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2z"/></svg>
+                        <span>${f}</span>
+                    </span>
+                    <span class="meta-item meta-lang" style="margin-left: auto;">
+                        <span class="lang-color-dot" style="background-color: ${lc};"></span>
+                        <span>${esc(l)}</span>
+                    </span>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+async function runSandboxAiSummary(event, index) {
+    if (event) event.stopPropagation();
+    const repo = sandboxFetchedRepos[index];
+    if (!repo) return;
+    
+    const originalText = event.target.textContent;
+    event.target.textContent = T[currentLang].aiLoading || "Thinking...";
+    event.target.disabled = true;
+    
+    try {
+        const key = localStorage.getItem("gemini_api_key") || "";
+        const token = localStorage.getItem("github_token") || "";
+        const headers = { 'Content-Type': 'application/json' };
+        if (key) headers['X-Gemini-Key'] = key;
+        
+        const r = await fetch('/api/ai/summarize', {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({
+                name: repo.full_name || repo.name,
+                description: repo.description,
+                language: repo.language,
+                token: token
+            })
+        });
+        const d = await r.json();
+        
+        event.target.textContent = originalText;
+        event.target.disabled = false;
+        
+        if (d.summary) {
+            showSandboxSummaryModal(repo.name || repo.full_name, d.summary);
+        } else {
+            showToast(d.error || "Failed to load summary", "error");
+        }
+    } catch (e) {
+        event.target.textContent = originalText;
+        event.target.disabled = false;
+        showToast(String(e), "error");
+    }
+}
+
+function showSandboxSummaryModal(title, content) {
+    let modal = $('sandboxSummaryModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'sandboxSummaryModal';
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width:500px; width:92%;">
+                <span class="close-modal" onclick="$('sandboxSummaryModal').classList.remove('open')">&times;</span>
+                <h3 id="sandboxSummaryTitle" style="font-size:1.15rem; font-weight:700; margin-bottom:12px;">🤖 AI Summary</h3>
+                <div id="sandboxSummaryBody" style="font-size:0.85rem; line-height:1.6; max-height:300px; overflow-y:auto; color:var(--text-dim);"></div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    $('sandboxSummaryTitle').textContent = `🤖 AI Summary — ${title}`;
+    $('sandboxSummaryBody').innerHTML = renderMarkdown(content);
+    modal.classList.add('open');
+}
+
 

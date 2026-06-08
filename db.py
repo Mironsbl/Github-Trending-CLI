@@ -37,8 +37,81 @@ def init_db() -> None:
     cursor.execute("""
         CREATE INDEX IF NOT EXISTS idx_repos_history_scraped_at ON repos_history (scraped_at)
     """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS user_watchlist (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            repo_name TEXT NOT NULL,
+            repo_data TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )
+    """)
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_user_watchlist_user ON user_watchlist (user_id)
+    """)
     conn.commit()
     conn.close()
+
+
+def add_to_watchlist(user_id: str, repo: dict[str, Any]) -> None:
+    """Add a repository to a user's persistent watchlist."""
+    import json
+    init_db()
+    conn = sqlite3.connect(str(DB_PATH))
+    cursor = conn.cursor()
+    
+    repo_name = repo.get("full_name") or repo.get("name") or "unknown"
+    created_at = datetime.now(tz=timezone.utc).isoformat()
+    repo_data_json = json.dumps(repo, ensure_ascii=False)
+    
+    # Check if already saved
+    cursor.execute(
+        "SELECT 1 FROM user_watchlist WHERE user_id = ? AND repo_name = ?",
+        (user_id, repo_name)
+    )
+    if not cursor.fetchone():
+        cursor.execute("""
+            INSERT INTO user_watchlist (user_id, repo_name, repo_data, created_at)
+            VALUES (?, ?, ?, ?)
+        """, (user_id, repo_name, repo_data_json, created_at))
+        conn.commit()
+    conn.close()
+
+
+def remove_from_watchlist(user_id: str, repo_name: str) -> None:
+    """Remove a repository from a user's persistent watchlist."""
+    init_db()
+    conn = sqlite3.connect(str(DB_PATH))
+    cursor = conn.cursor()
+    cursor.execute(
+        "DELETE FROM user_watchlist WHERE user_id = ? AND repo_name = ?",
+        (user_id, repo_name)
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_user_watchlist(user_id: str) -> list[dict[str, Any]]:
+    """Retrieve a user's persistent watchlist."""
+    import json
+    init_db()
+    conn = sqlite3.connect(str(DB_PATH))
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT repo_data FROM user_watchlist WHERE user_id = ? ORDER BY created_at DESC",
+        (user_id,)
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    
+    watchlist = []
+    for r in rows:
+        try:
+            watchlist.append(json.loads(r[0]))
+        except Exception:
+            continue
+    return watchlist
+
 
 
 def save_repos(repos: list[dict[str, Any]]) -> None:

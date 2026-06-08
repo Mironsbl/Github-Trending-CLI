@@ -165,16 +165,16 @@ def fetch_trending_repos(
             )
         except requests.exceptions.Timeout:
             if repos:
-                return repos
+                return repos[:limit]
             raise GitHubAPIError(
                 "GitHub API request timed out. Try again later."
             )
         except requests.exceptions.RequestException as exc:
             if repos:
-                return repos
+                return repos[:limit]
             raise GitHubAPIError(f"Unexpected network error: {exc}")
     
-    return repos
+    return repos[:limit]
 
 
 def get_rate_limit(token: str | None = None) -> dict[str, Any]:

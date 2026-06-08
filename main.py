@@ -19,6 +19,12 @@ console = Console()
 
 
 def main() -> None:
+    try:
+        from dotenv import load_dotenv
+        load_dotenv()
+    except ImportError:
+        pass
+
     parser = argparse.ArgumentParser(
         description="🔥 GitHub Trending CLI — Fetch trending repositories.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
